@@ -10,6 +10,19 @@ product search/get/analogs и refresh возвращают `NOT_IMPLEMENTED`.
 Создание ссылки блокируется при unknown; реальный переход в link_created
 зарезервирован до реализации и проверки MCP. Поддельных товаров, цен и ссылок нет.
 
+## Передать ссылку Hermes
+
+Отправьте агенту:
+
+> Установи себе этот скилл вместе с CLI по инструкции INSTALL.md:
+> https://github.com/SergeySdv/vkusvill-hermes
+
+[INSTALL.md](INSTALL.md) содержит полный порядок: штатная установка скилла,
+изолированная установка CLI и проверка в terminal backend. Bootstrap не требует
+uv и не меняет Python-зависимости Hermes. Нужны Python 3.11+ с venv/pip и Git.
+Установка включает все reference-файлы и launcher, поэтому глобальный vv в PATH
+не обязателен. После установки используется `/vkusvill`.
+
 ## Установка и быстрый запуск
 
 Нужны Python 3.11+ и uv. Зависимости закреплены в `uv.lock`;
@@ -65,23 +78,27 @@ CartPayload проверяет xml_id, 1–20 уникальных SKU и q от
 
 ## Hermes
 
-Установите CLI **в окружении terminal backend Hermes**, отдельно от его
-Python-зависимостей:
+Установка по ссылке подробно описана в [INSTALL.md](INSTALL.md).
+Для стандартного профиля и общего окружения skills/terminal:
 
 ```sh
-uv tool install .
-vv doctor --json
-mkdir -p ~/.hermes/skills
-cp -R skills/vkusvill ~/.hermes/skills/
+hermes skills install SergeySdv/vkusvill-hermes/skills/vkusvill
+export HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+python3 "$HERMES_HOME/skills/vkusvill/scripts/setup.py"
+python3 "$HERMES_HOME/skills/vkusvill/scripts/vv.py" doctor --json
 hermes skills list
 ```
 
-Копирование рассчитано на новую установку скилла. Для существующего
-`vkusvill` сначала сравните изменения. В контейнере команды установки
-выполняются внутри контейнера; установка на хост не делает CLI доступной там.
-Для нестандартного профиля используйте каталог skills этого профиля.
-Скилл вызывается как `/vkusvill`; его references копируются вместе с ним.
-Установка в действующий Hermes в рамках подготовки репозитория не выполнялась.
+Для нестандартного профиля задайте его фактический HERMES_HOME; для категории
+используйте путь скилла, возвращённый установщиком. Runtime и состояние находятся
+в HERMES_HOME/integrations/vkusvill, отдельно от зависимостей Hermes.
+Bootstrap закрепляет CLI на полном Git commit SHA; повторный запуск переиспользует
+успешно установленный runtime. Зависимости pip разрешаются в рамках pyproject;
+для разработки с точными версиями используйте uv.lock.
+В контейнере setup и launcher должны работать внутри terminal backend.
+Установка на хост не делает CLI доступной в контейнере.
+Штатные проверки безопасности Hermes сохраняются.
+Реальный профиль Hermes при разработке не изменяется.
 
 ## Разработка
 

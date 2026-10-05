@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Link-based Hermes installation guide, native skill install, and isolated CLI bootstrap.
+- Pinned CLI source revision, profile-aware runtime/state, PATH-independent launcher.
+- Tests for repeated setup, failed installation, profile paths and literal argument forwarding.
+
 ## 0.1.0 — 2026-10-05
 
 - Initial offline vv CLI, SQLite basket revisions, checks, hashes and unknown states.

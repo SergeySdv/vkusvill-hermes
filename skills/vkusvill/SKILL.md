@@ -16,8 +16,19 @@ metadata:
 
 ## Procedure
 
-1. Проверь наличие `vv` в terminal backend и выполни `vv doctor --json`.
-   Если CLI отсутствует, сообщи об этом. Не устанавливай её автоматически.
+Если пользователь прямо просит установить этот скилл, прочитай и запусти
+[scripts/setup.py](scripts/setup.py). Он использует [scripts/runtime.py](scripts/runtime.py)
+для отдельного Python-окружения и закреплённого Git commit CLI. Нужны Python 3.11+
+с venv/pip и Git. Передай фактический HERMES_HOME активного профиля.
+Затем выполни `python3 <путь-скилла>/scripts/vv.py doctor --json` и проверь видимость
+скилла в Hermes. Не обходи штатные проверки установки Hermes.
+
+1. Используй [scripts/vv.py](scripts/vv.py) как launcher:
+   `python3 <путь-скилла>/scripts/vv.py doctor --json`.
+   В следующих шагах и references `vv` означает этот launcher с теми же аргументами.
+   Он не зависит от глобального PATH и использует тот же HERMES_HOME, что setup.
+   При SETUP_REQUIRED сообщи, что нужна установка. Обычный запрос на подбор
+   продуктов сам по себе не запускает установку.
    Версия 0.1.0 — offline-каркас: doctor не проверяет сеть или вход в аккаунт.
 2. Прочитай [references/cli.md](references/cli.md). Для повторной корзины,
    рецептов и замен прочитай [references/workflows.md](references/workflows.md).
