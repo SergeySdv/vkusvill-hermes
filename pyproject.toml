@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vkusvill-hermes"
-version = "0.1.0"
+version = "0.2.0"
 description = "Deterministic local basket CLI and Hermes skill for VkusVill MCP"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["typer>=0.27.2,<0.28", "pydantic>=2.11,<3", "mcp>=1.26,<2"]
+dependencies = ["typer>=0.27.2,<0.28", "pydantic>=2.13,<3", "mcp>=1.30,<2", "httpx>=0.28,<1"]
 
 [project.scripts]
 vv = "vv.cli:main"

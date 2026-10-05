@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-05
+
+- Live public MCP search, details, analogs and real basket-share links.
+- Reviewed runtime schema checks, normalized snapshots and Decimal estimates.
+- Strict constraint gates, fresh-data comparison and pending mutation tracking.
+- Live doctor and updated Hermes workflows; no OAuth, checkout or payment.
 
 - Link-based Hermes installation guide, native skill install, and isolated CLI bootstrap.
 - Pinned CLI source revision, profile-aware runtime/state, PATH-independent launcher.

@@ -34,6 +34,7 @@ class Item(Model):
 
 
 class Constraints(Model):
+    require_availability: bool = False
     currency: Literal["RUB"] = "RUB"
     max_goods_total: Money | None = None
     hard_exclusions: list[Annotated[str, Field(min_length=1, max_length=200)]] = Field(
@@ -75,15 +76,33 @@ class CartPayload(Model):
 class Finding(Model):
     status: Status
     evidence: str
+    blocking: bool = True
+
+
+class ProductSnapshot(Model):
+    product_id: PositiveID
+    xml_id: PositiveID
+    name: str
+    description: str = ""
+    price: Annotated[Decimal, Field(ge=0)] | None = None
+    currency: str | None = None
+    unit: str
+    composition: str | None = None
+    allergens: str | None = None
+    availability: Literal["unknown"] = "unknown"
+    source: Literal["https://mcp.vkusvill.ru/mcp"] = "https://mcp.vkusvill.ru/mcp"
+    retrieved_at: float
 
 
 class Report(Model):
-    scope: Literal["local_only"] = "local_only"
+    scope: Literal["local_only", "public_live"] = "local_only"
     checked_at: float
     expires_at: float
     catalog_scope: Literal["unverified"] = "unverified"
-    goods_total: None = None
+    goods_total: Decimal | None = None
     checks: dict[str, Finding]
+    products: list[ProductSnapshot] = Field(default_factory=list)
+    payload: CartPayload | None = None
 
 
 class Basket(Model):
@@ -94,3 +113,4 @@ class Basket(Model):
     report: Report | None = None
     check_hash: str | None = None
     link: str | None = None
+    link_attempt: Literal["none", "pending", "unknown"] = "none"

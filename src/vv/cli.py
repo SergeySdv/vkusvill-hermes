@@ -68,7 +68,12 @@ def root(
 
 
 @app.command()
-def doctor(json_output: JsonFlag = False):
+def doctor(
+    json_output: JsonFlag = False,
+    live: Annotated[
+        bool, typer.Option("--live", help="Test the public MCP with one search.")
+    ] = False,
+):
     service = application()
     with service.store.transaction():
         pass
@@ -76,27 +81,29 @@ def doctor(json_output: JsonFlag = False):
         {
             "storage": "ok",
             "profile": service.store.profile,
-            "provider": "not_implemented",
-            "network_checked": False,
-            "auth": "unknown",
-            "link_creation_enabled": False,
+            "provider": "public_mcp",
+            "network_checked": live,
+            "auth": "not_configured",
+            "link_creation_enabled": True,
+            "live": service.provider.health() if live else None,
         },
-        warnings=["LOCAL_ONLY: live MCP discovery and OAuth are pending."],
+        warnings=["PUBLIC_CATALOG: address availability and final delivery price are unknown."],
     )
 
 
 @product.command()
 def search(
     query: str,
-    limit: Annotated[int, typer.Option(min=1, max=100)] = 5,
+    limit: Annotated[int, typer.Option(min=1, max=10)] = 5,
+    page: Annotated[int, typer.Option(min=1, max=99999)] = 1,
     json_output: JsonFlag = False,
 ):
-    emit(application().provider.search(query, limit))
+    emit(application().provider.search(query, limit, page))
 
 
 @product.command()
 def get(
-    product_id: Annotated[int, typer.Argument(min=1)],
+    product_id: Annotated[int, typer.Argument(min=1, max=999999999)],
     json_output: JsonFlag = False,
 ):
     emit(application().provider.get(product_id))
@@ -104,7 +111,7 @@ def get(
 
 @product.command()
 def analogs(
-    product_id: Annotated[int, typer.Argument(min=1)],
+    product_id: Annotated[int, typer.Argument(min=1, max=999999999)],
     json_output: JsonFlag = False,
 ):
     emit(application().provider.analogs(product_id))
@@ -140,7 +147,11 @@ def check(
 ):
     emit(
         application().check(name, refresh),
-        warnings=["LOCAL_ONLY: checked does not mean link-ready; inspect unknown statuses."],
+        warnings=[
+            "PUBLIC_CATALOG: inspect blocking checks; stock and final delivery price are unknown."
+            if refresh
+            else "LOCAL_ONLY: use --refresh before requesting a link."
+        ],
     )
 
 

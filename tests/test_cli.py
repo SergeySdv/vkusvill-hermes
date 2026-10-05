@@ -26,12 +26,12 @@ def invoke(*arguments):
 
 
 def test_version_and_doctor():
-    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.1.0"
+    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.2.0"
     for arguments in [("--json", "doctor"), ("doctor", "--json")]:
         result, body = invoke(*arguments)
         assert result.exit_code == 0
         assert body["data"]["network_checked"] is False
-        assert body["data"]["auth"] == "unknown"
+        assert body["data"]["auth"] == "not_configured"
 
 
 @pytest.mark.parametrize(
@@ -42,10 +42,10 @@ def test_version_and_doctor():
         ("product", "analogs", "101"),
     ],
 )
-def test_product_stubs(arguments):
+def test_product_network_errors(arguments):
     result, body = invoke(*arguments, "--json")
     assert result.exit_code == 1
-    assert body["error"]["code"] == "NOT_IMPLEMENTED"
+    assert body["error"]["code"] == "NETWORK_ERROR"
     assert body["data"] is None
 
 
@@ -95,10 +95,11 @@ def test_no_shell_interpolation(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "Popen", forbidden)
     monkeypatch.setattr(subprocess, "run", forbidden)
     monkeypatch.setattr(os, "system", forbidden)
+    monkeypatch.chdir(tmp_path)
     marker = tmp_path / "injected"
-    result, body = invoke("product", "search", f"$(touch {marker}); `touch {marker}`")
+    result, body = invoke("product", "search", "$(touch injected); `touch injected`")
     assert result.exit_code == 1
-    assert body["error"]["code"] == "NOT_IMPLEMENTED"
+    assert body["error"]["code"] == "NETWORK_ERROR"
     assert not marker.exists()
 
 

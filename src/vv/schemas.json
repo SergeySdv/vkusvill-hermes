@@ -1,0 +1,145 @@
+{
+  "vkusvill_products_search": {
+    "type": "object",
+    "properties": {
+      "q": {
+        "type": "string",
+        "description": "Поисковый запрос",
+        "default": "",
+        "minLength": 1,
+        "maxLength": 255
+      },
+      "page": {
+        "type": "integer",
+        "description": "Номер страницы",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 99999
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Количество на странице",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 10
+      },
+      "category_id": {
+        "type": "integer",
+        "description": "Ищет и возвращает список товаров ВкусВилл по id категории. Список категорий возвращается в facets[categories] при выполнении поиска",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 999999
+      },
+      "sort": {
+        "type": "string",
+        "description": "Сортировка товаров, варианты: price_asc - цена по возврастанию, price_desc - цена по убыванию, rating - сначала товары с высоким рейтингом, popularity - сначала самый популярные товары, new - сначала новинки",
+        "default": "popularity",
+        "enum": [
+          "price_asc",
+          "price_desc",
+          "rating",
+          "popularity",
+          "new"
+        ]
+      },
+      "vvonly": {
+        "type": "integer",
+        "description": "Искать только товары бренда ВкусВилл",
+        "default": 1,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "mode": {
+        "type": "string",
+        "description": "Режим набора полей: full - все поля, short - краткий набор, custom - выбранные поля",
+        "default": "short",
+        "enum": [
+          "full",
+          "short",
+          "custom"
+        ]
+      },
+      "fields": {
+        "type": "array",
+        "description": "Поля товара для режима custom",
+        "default": [],
+        "items": {
+          "type": "string",
+          "enum": [
+            "id",
+            "xml_id",
+            "name",
+            "slug",
+            "description",
+            "price",
+            "unit",
+            "weight",
+            "rating",
+            "url",
+            "images",
+            "category",
+            "properties"
+          ]
+        },
+        "minItems": 0
+      }
+    }
+  },
+  "vkusvill_product_details": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer",
+        "description": "ID товара ВкусВилл",
+        "minimum": 1,
+        "maximum": 999999999
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "vkusvill_product_analogs": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer",
+        "description": "ID товара ВкусВилл",
+        "minimum": 1,
+        "maximum": 999999999
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "vkusvill_cart_link_create": {
+    "type": "object",
+    "properties": {
+      "products": {
+        "type": "array",
+        "description": "Массив объектов товаров",
+        "items": {
+          "type": "object",
+          "properties": {
+            "xml_id": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999999
+            },
+            "q": {
+              "type": "number",
+              "format": "float",
+              "minimum": 0.01,
+              "maximum": 40
+            }
+          }
+        },
+        "maxItems": 30
+      }
+    },
+    "required": [
+      "products"
+    ]
+  }
+}

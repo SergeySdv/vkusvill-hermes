@@ -85,6 +85,10 @@ class Store:
                     raise
                 revision = 1
             else:
+                if old.link_attempt != "none":
+                    raise VVError(
+                        Code.OUTCOME_UNKNOWN, "Resolve the outstanding link attempt first."
+                    )
                 revision = old.revision + 1
             basket = Basket(name=name, revision=revision, request=request)
             self.save(connection, basket)

@@ -82,7 +82,7 @@ def test_hash_detects_modified_stored_request(service, shopping_request):
 def test_refresh_failure_is_atomic(service, shopping_request):
     service.import_request("dinner", shopping_request)
     before = service.store.show("dinner")
-    assert_error(Code.NOT_IMPLEMENTED, lambda: service.check("dinner", refresh=True))
+    assert_error(Code.NETWORK_ERROR, lambda: service.check("dinner", refresh=True))
     assert service.store.show("dinner") == before
 
 

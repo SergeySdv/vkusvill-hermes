@@ -43,7 +43,7 @@ Using the actual installed skill path reported by Hermes, run:
 
 ```sh
 python3 "$HERMES_HOME/skills/vkusvill/scripts/setup.py"
-python3 "$HERMES_HOME/skills/vkusvill/scripts/vv.py" doctor --json
+python3 "$HERMES_HOME/skills/vkusvill/scripts/vv.py" doctor --live --json
 ```
 
 The commands assume HERMES_HOME has been set to the active absolute home.
@@ -64,9 +64,21 @@ Setup does not configure OAuth or consume credentials.
 - Check that vkusvill is visible through skills_list or hermes skills list.
 - Load the installed skill with skill_view. If the current session does not
   refresh discovery, start a new conversation and use /vkusvill.
-- Explain that this release supports local basket operations only.
-  provider=not_implemented and auth=unknown are expected, not live connectivity.
-- Do not claim that product search, authentication or real cart-link creation works.
+- Verify cli_version is 0.2.0 or later and live.public_mcp=ok.
+- Explain that public search/details/analogs/cart links work without login.
+  Authenticated stock, address-specific prices and delivery costs remain unknown.
+- If the user requested a functional test, search for their products, inspect
+  details, import a request, run check --refresh and create a link with its hash.
+  Do not report an order or payment; this produces a share link only.
+
+## Updating an existing 0.1.0 installation
+
+Refresh the skill bundle through the native Hermes skill manager after reviewing
+local edits and scanner results. Ensure scripts/runtime.py matches this repository:
+the older bootstrap pins the offline CLI and must not be reused for this release.
+Run the new scripts/setup.py: it creates a new revision-specific environment and
+preserves the shared basket state. Then run launcher doctor --live and confirm
+0.2.0+. Old check hashes require a new check --refresh.
 
 A bare link can also mean “read this”; the reliable user request is:
 “Установи себе этот скилл вместе с CLI по инструкции INSTALL.md: <repository URL>”.

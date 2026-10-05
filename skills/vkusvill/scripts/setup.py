@@ -42,7 +42,7 @@ def install() -> dict:
         "revision": REVISION,
         "runtime_python": str(runtime_python()),
         "doctor": result,
-        "capabilities": "local_baskets_only",
+        "capabilities": "public_search_details_analogs_and_cart_links",
     }
 
 

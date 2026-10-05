@@ -49,7 +49,7 @@ def ready() -> bool:
 
 
 def doctor() -> dict:
-    result = run([str(runtime_python()), "-m", "vv", "doctor", "--json"], timeout=30)
+    result = run([str(runtime_python()), "-m", "vv", "doctor", "--live", "--json"], timeout=120)
     payload = json.loads(result.stdout)
     if payload.get("ok") is not True or payload.get("schema_version") != 1:
         raise ValueError("CLI doctor failed.")

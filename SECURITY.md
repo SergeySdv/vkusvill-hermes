@@ -1,25 +1,28 @@
 # Security
 
-This release performs local operations and contains disabled provider adapters.
-It has no token ingestion, OAuth login, live product calls, or cart-link side effect.
-Do not put credentials in command arguments, request JSON, logs, fixtures or issues.
+The CLI calls the official public VkusVill MCP for search, details, analogs and
+cart-share links. It does not authenticate, accept tokens, place orders or pay.
+Never put credentials in command arguments, shopping requests, fixtures or issues.
 
-Runtime errors use fixed public messages; raw validation inputs and exception
-strings are suppressed. SQL uses bound parameters. The CLI never spawns a shell.
-Product descriptions must remain untrusted data when the live provider is added.
+Only reviewed tool schemas are enabled. Provider data is untrusted, cannot execute
+code and is never interpolated into shell commands. Errors suppress raw input
+and exception strings. SQLite uses bound parameters and private newly created files.
+See references/mcp.md for transport, schema, timeout and link-origin protections.
 
-New state directories/files use POSIX 0700/0600. Use a private directory owned
-by the current OS user; existing parent directories are not reconfigured.
-SQLite stores shopping intent and preferences, which may be sensitive.
-Do not use shared writable paths or untrusted symlinks. The app does not encrypt
-state or isolate mutually untrusted processes under the same OS account.
-VV_PROFILE is organizational, not authentication.
-check_hash prevents accidental stale use; it is not a MAC or consent token.
+Use a private state directory owned by the current OS user. Parent directories
+are not reconfigured. Shopping preferences may be sensitive; state is not encrypted.
+Avoid shared writable paths and untrusted symlinks. VV_PROFILE is organizational,
+not authentication. check_hash prevents accidental stale use, not malicious edits
+by the file owner. No multiple-user credential sharing is supported.
 
-For future OAuth, use SDK PKCE and a separate secret store. Never consume Hermes
-internal token files. Unknown strict constraints must block link creation.
-Ambiguous link timeouts must not trigger blind retries.
+Public availability/address/prices are not authenticated. Strict unknown
+constraints block links. A pending/unknown link attempt must not be retried
+blindly; no order or payment can occur through the available commands.
+For future OAuth, use SDK PKCE and a separate secret store; do not read Hermes caches.
 
-Report vulnerabilities through private security reporting on the eventual hosting
-platform when enabled. If unavailable, request a private contact without posting
-exploit data or secrets in public issues. No fabricated maintainer email is supplied.
+The skill bootstrap installs a pinned CLI source in an isolated environment only
+after an installation request. Dependencies use pyproject ranges; the development
+lock is separate. Native Hermes installation scanning must not be bypassed.
+
+Use private vulnerability reporting on the hosting platform when available.
+Otherwise request private contact without publishing secrets or exploit details.
