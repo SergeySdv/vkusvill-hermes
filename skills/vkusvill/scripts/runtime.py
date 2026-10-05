@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-REVISION = "265b0311bbcf584c3f147893217b38c069c7e3b6"
+REVISION = "ceda3556254cbc3621110cd85c50a1a9026e5bab"
 SOURCE = f"git+https://github.com/SergeySdv/vkusvill-hermes.git@{REVISION}"
 
 
