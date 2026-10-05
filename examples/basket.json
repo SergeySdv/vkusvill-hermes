@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "items": [
+    {"product_id": 123456789, "quantity": "2", "unit": "package"},
+    {"product_id": 123456790, "quantity": "500", "unit": "g"}
+  ],
+  "constraints": {
+    "currency": "RUB",
+    "max_goods_total": "3000.00",
+    "hard_exclusions": [],
+    "preferences": []
+  }
+}

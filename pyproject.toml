@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vkusvill-hermes"
+version = "0.1.0"
+description = "Deterministic local basket CLI and Hermes skill for VkusVill MCP"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["typer>=0.27.2,<0.28", "pydantic>=2.11,<3", "mcp>=1.26,<2"]
+
+[project.scripts]
+vv = "vv.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff==0.15.6", "pre-commit>=4,<5", "build>=1.2,<2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

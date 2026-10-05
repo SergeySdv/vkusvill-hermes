@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "items": [
+    {"product_id": 123456789, "quantity": "2", "unit": "package"}
+  ],
+  "constraints": {
+    "currency": "RUB",
+    "max_goods_total": "3000.00",
+    "hard_exclusions": [],
+    "preferences": ["Не острое", "Не слишком солёное", "Поменьше жирного"]
+  }
+}
