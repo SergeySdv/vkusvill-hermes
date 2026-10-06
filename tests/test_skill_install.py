@@ -37,6 +37,62 @@ def test_profile_paths_and_environment(runtime, monkeypatch):
     assert environment["VV_STATE_DIR"] == str(runtime.runtime_root() / "state")
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "TELEGRAM_BOT_TOKEN",
+        "AWS_SECRET_ACCESS_KEY",
+        "CUSTOM_PRIVATE_VALUE",
+        "VV_UNKNOWN_SECRET",
+        "GIT_ASKPASS",
+        "SSH_AUTH_SOCK",
+        "PIP_INDEX_URL",
+        "PYTHONPATH",
+        "PYTHONHOME",
+        "LD_PRELOAD",
+    ],
+)
+def test_unlisted_environment_not_forwarded(runtime, monkeypatch, name):
+    monkeypatch.setenv(name, "synthetic-private-sentinel")
+    assert name not in runtime.runtime_environment()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "PATH",
+        "HOME",
+        "TMPDIR",
+        "LANG",
+        "HERMES_HOME",
+        "VV_STATE_DIR",
+        "VV_PROFILE",
+        "HTTPS_PROXY",
+        "NO_PROXY",
+        "SSL_CERT_FILE",
+        "VV_TEST_MODE",
+        "VV_MCP_TEST_URL",
+    ],
+)
+def test_required_environment_preserved(runtime, monkeypatch, name):
+    monkeypatch.setenv(name, "explicit-test-value")
+    assert runtime.runtime_environment()[name] == "explicit-test-value"
+
+
+def test_actual_child_does_not_receive_parent_secrets(runtime, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "synthetic-model-secret")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "synthetic-telegram-secret")
+    monkeypatch.setenv("VV_UNKNOWN_SECRET", "synthetic-custom-secret")
+    result = runtime.run(
+        [sys.executable, "-c", "import json, os; print(json.dumps(sorted(os.environ)))"]
+    )
+    names = json.loads(result.stdout)
+    assert not {"OPENAI_API_KEY", "TELEGRAM_BOT_TOKEN", "VV_UNKNOWN_SECRET"}.intersection(names)
+    assert {"HERMES_HOME", "VV_STATE_DIR", "PYTHONNOUSERSITE"}.issubset(names)
+
+
 def test_setup_installs_pinned_cli_and_reuses_it(runtime, monkeypatch):
     setup = load_script("setup")
     calls = []
@@ -77,6 +133,7 @@ def test_failed_doctor_does_not_mark_ready(runtime, monkeypatch):
 def test_launcher_forwards_literal_arguments(runtime, monkeypatch):
     launcher = load_script("vv")
     monkeypatch.setattr(launcher, "ready", lambda: True)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "synthetic-launcher-secret")
     text = "$(touch unwanted); quote ' and spaces"
     monkeypatch.setattr(sys, "argv", ["vv.py", "product", "search", text])
     calls = []
@@ -86,6 +143,7 @@ def test_launcher_forwards_literal_arguments(runtime, monkeypatch):
     assert executable == str(runtime.runtime_python())
     assert arguments == [executable, "-m", "vv", "product", "search", text]
     assert environment["PYTHONNOUSERSITE"] == "1"
+    assert "TELEGRAM_BOT_TOKEN" not in environment
 
 
 def test_launcher_missing_setup_does_not_install(runtime, capsys):

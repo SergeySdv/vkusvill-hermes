@@ -24,5 +24,12 @@ The skill bootstrap installs a pinned CLI source in an isolated environment only
 after an installation request. Dependencies use pyproject ranges; the development
 lock is separate. Native Hermes installation scanning must not be bypassed.
 
+Bootstrap subprocesses and the skill launcher inherit only an explicit environment
+allowlist: OS paths/temp/locale, named Hermes/vv settings and proxy/CA settings.
+Model keys, Telegram tokens, arbitrary VV_* variables, Python import overrides,
+SSH agents and pip index overrides are not forwarded. Proxy URLs may themselves
+contain credentials: configure them only when needed. This limits environment
+inheritance, not filesystem access or credentials in user-level Git/pip config.
+
 Use private vulnerability reporting on the hosting platform when available.
 Otherwise request private contact without publishing secrets or exploit details.

@@ -17,6 +17,8 @@ from vv.output import emit
 from vv.store import Store
 
 JsonFlag = Annotated[bool, typer.Option("--json", help="JSON is the default output format.")]
+Page = Annotated[int, typer.Option(min=1, max=99999)]
+FilterId = Annotated[int, typer.Option(min=0, max=999999999)]
 
 
 class SafeGroup(TyperGroup):
@@ -42,8 +44,18 @@ class SafeGroup(TyperGroup):
 app = typer.Typer(cls=SafeGroup, no_args_is_help=True, pretty_exceptions_enable=False)
 product = typer.Typer()
 basket = typer.Typer()
+discount = typer.Typer()
+recipe = typer.Typer()
+shop = typer.Typer()
+orders = typer.Typer()
+favorite = typer.Typer()
 app.add_typer(product, name="product")
 app.add_typer(basket, name="basket")
+app.add_typer(discount, name="discount")
+app.add_typer(recipe, name="recipe")
+app.add_typer(shop, name="shop")
+app.add_typer(orders, name="orders")
+app.add_typer(favorite, name="favorite")
 
 
 def application() -> Application:
@@ -115,6 +127,84 @@ def analogs(
     json_output: JsonFlag = False,
 ):
     emit(application().provider.analogs(product_id))
+
+
+@product.command()
+def barcode(barcode: str, json_output: JsonFlag = False):
+    emit(application().provider.barcode(barcode))
+
+
+@discount.command("search")
+def discount_search(
+    page: Page = 1,
+    sort: str = "popularity",
+    kind: Annotated[str, typer.Option("--type")] = "card",
+    vvonly: Annotated[int, typer.Option(min=0, max=1)] = 1,
+    json_output: JsonFlag = False,
+):
+    emit(
+        application().provider.discounts(page, sort, kind, vvonly),
+        warnings=["PUBLIC_CATALOG: discount eligibility and address availability are unverified."],
+    )
+
+
+@recipe.command("search")
+def recipe_search(
+    query: Annotated[str, typer.Argument()] = "",
+    page: Page = 1,
+    sort: str = "popularity",
+    feature: FilterId = 0,
+    cooking_time: FilterId = 0,
+    cooking_method: FilterId = 0,
+    complexity: FilterId = 0,
+    category: FilterId = 0,
+    exclude_allergen: Annotated[list[int] | None, typer.Option(min=1, max=999999999)] = None,
+    json_output: JsonFlag = False,
+):
+    emit(
+        application().provider.recipes(
+            query,
+            page,
+            sort,
+            id_feature_filter=feature,
+            id_cooking_time_filter=cooking_time,
+            id_cooking_method_filter=cooking_method,
+            id_complexity_filter=complexity,
+            id_category_filter=category,
+            id_exclude_allergens_filter=exclude_allergen or [],
+        ),
+        warnings=["RECIPE_CANDIDATES: verify ingredients, portions and product cards separately."],
+    )
+
+
+@shop.command("search")
+def shop_search(
+    page: Page = 1,
+    region: FilterId = 0,
+    city: FilterId = 0,
+    subway: FilterId = 0,
+    feature: FilterId = 0,
+    json_output: JsonFlag = False,
+):
+    emit(
+        application().provider.shops(
+            page,
+            id_region_filter=region,
+            id_city_filter=city,
+            id_subway_filter=subway,
+            id_feature_filter=feature,
+        )
+    )
+
+
+@orders.command("list")
+def orders_list(page: Page = 1, json_output: JsonFlag = False):
+    emit(application().provider.orders(page))
+
+
+@favorite.command("show")
+def favorite_show(json_output: JsonFlag = False):
+    emit(application().provider.favorite())
 
 
 @basket.command("import")

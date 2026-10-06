@@ -1,4 +1,5 @@
 import json
+import os
 from uuid import uuid4
 
 import typer
@@ -9,6 +10,9 @@ from vv.errors import VVError
 
 
 def emit(data=None, *, error: VVError | None = None, warnings: list[str] | None = None):
+    warnings = list(warnings or [])
+    if os.environ.get("VV_MCP_TEST_URL"):
+        warnings.append("SYNTHETIC_TEST_PROVIDER: not real VkusVill data or links.")
     if isinstance(data, BaseModel):
         data = data.model_dump(mode="json")
     typer.echo(
@@ -26,7 +30,7 @@ def emit(data=None, *, error: VVError | None = None, warnings: list[str] | None 
                     if error
                     else None
                 ),
-                "warnings": warnings or [],
+                "warnings": warnings,
                 "meta": {"cli_version": __version__, "request_id": str(uuid4())},
             },
             ensure_ascii=False,
