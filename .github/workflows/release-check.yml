@@ -23,4 +23,5 @@ jobs:
         with:
           name: release-installation-report
           path: .e2e-results/*/result.json
+          include-hidden-files: true
           if-no-files-found: error
