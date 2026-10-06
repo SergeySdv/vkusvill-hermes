@@ -58,13 +58,24 @@ An unchanged, successfully installed runtime is reused. State is kept separately
 under integrations/vkusvill/state unless VV_STATE_DIR is explicitly set.
 Setup does not configure OAuth or consume credentials.
 
+This skill pins CLI 0.3.0, commit `02bee28cd9f5a7fc563da9635ee4d5519873c936`,
+which contains all ten adapters. Setup must report the expected revision, and
+`vv product barcode --help`, `vv discount search --help`, `vv recipe search --help`,
+`vv shop search --help`, `vv orders list --help`, `vv favorite show --help` must exist.
+
+Before publishing the skill, run `make release-check`. This verifies the unchanged
+candidate through Hermes's native guard/install APIs and checks actual installed
+source files and pip commit provenance, not only help text or a successful doctor.
+The test does not download the candidate skill from GitHub; repeat `make e2e-install`
+after publication to verify the public installation path as well.
+
 ## 4. Verify and report honestly
 
 - Setup must return ok=true; launcher doctor must return ok=true.
 - Check that vkusvill is visible through skills_list or hermes skills list.
 - Load the installed skill with skill_view. If the current session does not
   refresh discovery, start a new conversation and use /vkusvill.
-- Verify cli_version is 0.2.0 or later and live.public_mcp=ok.
+- Verify cli_version is 0.3.0 and live.public_mcp=ok.
 - Explain that public search/details/analogs/cart links work without login.
   Authenticated stock, address-specific prices and delivery costs remain unknown.
 - If the user requested a functional test, search for their products, inspect
@@ -78,7 +89,7 @@ local edits and scanner results. Ensure scripts/runtime.py matches this reposito
 the older bootstrap pins the offline CLI and must not be reused for this release.
 Run the new scripts/setup.py: it creates a new revision-specific environment and
 preserves the shared basket state. Then run launcher doctor --live and confirm
-0.2.0+. Old check hashes require a new check --refresh.
+0.3.0. Old check hashes require a new check --refresh.
 
 A bare link can also mean “read this”; the reliable user request is:
 “Установи себе этот скилл вместе с CLI по инструкции INSTALL.md: <repository URL>”.

@@ -1,0 +1,14 @@
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!src/**
+!skills/
+!skills/**
+!tests/
+!tests/**
+!e2e/
+!e2e/**
+**/__pycache__/
+**/*.pyc

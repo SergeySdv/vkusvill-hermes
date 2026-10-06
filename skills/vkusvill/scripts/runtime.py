@@ -3,8 +3,41 @@ import os
 import subprocess
 from pathlib import Path
 
-REVISION = "ceda3556254cbc3621110cd85c50a1a9026e5bab"
+REVISION = "02bee28cd9f5a7fc563da9635ee4d5519873c936"
 SOURCE = f"git+https://github.com/SergeySdv/vkusvill-hermes.git@{REVISION}"
+ENVIRONMENT_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "USERPROFILE",
+    "SystemRoot",
+    "WINDIR",
+    "PATHEXT",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TZ",
+    "HERMES_HOME",
+    "VV_RUNTIME_ROOT",
+    "VV_STATE_DIR",
+    "VV_PROFILE",
+    "VV_TEST_MODE",
+    "VV_MCP_TEST_URL",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "REQUESTS_CA_BUNDLE",
+    "PIP_CERT",
+)
 
 
 def runtime_root() -> Path:
@@ -21,11 +54,14 @@ def runtime_python() -> Path:
 
 
 def runtime_environment() -> dict[str, str]:
-    environment = os.environ.copy()
+    environment = {}
+    for name in ENVIRONMENT_ALLOWLIST:
+        value = os.environ.get(name)
+        if value is not None:
+            environment[name] = value
+    environment.setdefault("PATH", os.defpath)
     environment.setdefault("VV_STATE_DIR", str(runtime_root() / "state"))
     environment["PYTHONNOUSERSITE"] = "1"
-    environment.pop("PYTHONPATH", None)
-    environment.pop("PYTHONHOME", None)
     return environment
 
 

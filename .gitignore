@@ -16,3 +16,4 @@ build/
 credentials*
 *token*.json
 .DS_Store
+.e2e-results/

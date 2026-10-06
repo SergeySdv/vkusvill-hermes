@@ -5,6 +5,11 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ''
+      OPENROUTER_API_KEY: ''
+      NOUS_API_KEY: ''
     strategy:
       matrix:
         python: ["3.11", "3.12", "3.13", "3.14"]

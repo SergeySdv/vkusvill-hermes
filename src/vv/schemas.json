@@ -1,38 +1,79 @@
 {
+  "vkusvill_orders_history": {
+    "type": "object",
+    "properties": {
+      "page": {
+        "type": "integer",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 99999
+      }
+    }
+  },
+  "vkusvill_shops": {
+    "type": "object",
+    "properties": {
+      "page": {
+        "type": "integer",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 99999
+      },
+      "id_region_filter": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_city_filter": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_subway_filter": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_feature_filter": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 999999999
+      }
+    }
+  },
   "vkusvill_products_search": {
     "type": "object",
     "properties": {
       "q": {
         "type": "string",
-        "description": "Поисковый запрос",
         "default": "",
         "minLength": 1,
         "maxLength": 255
       },
       "page": {
         "type": "integer",
-        "description": "Номер страницы",
         "default": 1,
         "minimum": 1,
         "maximum": 99999
       },
       "limit": {
         "type": "integer",
-        "description": "Количество на странице",
         "default": 10,
         "minimum": 1,
         "maximum": 10
       },
       "category_id": {
         "type": "integer",
-        "description": "Ищет и возвращает список товаров ВкусВилл по id категории. Список категорий возвращается в facets[categories] при выполнении поиска",
         "default": 0,
         "minimum": 0,
         "maximum": 999999
       },
       "sort": {
         "type": "string",
-        "description": "Сортировка товаров, варианты: price_asc - цена по возврастанию, price_desc - цена по убыванию, rating - сначала товары с высоким рейтингом, popularity - сначала самый популярные товары, new - сначала новинки",
         "default": "popularity",
         "enum": [
           "price_asc",
@@ -44,14 +85,12 @@
       },
       "vvonly": {
         "type": "integer",
-        "description": "Искать только товары бренда ВкусВилл",
         "default": 1,
         "minimum": 0,
         "maximum": 1
       },
       "mode": {
         "type": "string",
-        "description": "Режим набора полей: full - все поля, short - краткий набор, custom - выбранные поля",
         "default": "short",
         "enum": [
           "full",
@@ -61,7 +100,6 @@
       },
       "fields": {
         "type": "array",
-        "description": "Поля товара для режима custom",
         "default": [],
         "items": {
           "type": "string",
@@ -90,7 +128,6 @@
     "properties": {
       "id": {
         "type": "integer",
-        "description": "ID товара ВкусВилл",
         "minimum": 1,
         "maximum": 999999999
       }
@@ -99,12 +136,23 @@
       "id"
     ]
   },
+  "vkusvill_product_barcode": {
+    "type": "object",
+    "properties": {
+      "barcode": {
+        "type": "string",
+        "pattern": "^\\d{13}$"
+      }
+    },
+    "required": [
+      "barcode"
+    ]
+  },
   "vkusvill_product_analogs": {
     "type": "object",
     "properties": {
       "id": {
         "type": "integer",
-        "description": "ID товара ВкусВилл",
         "minimum": 1,
         "maximum": 999999999
       }
@@ -118,7 +166,6 @@
     "properties": {
       "products": {
         "type": "array",
-        "description": "Массив объектов товаров",
         "items": {
           "type": "object",
           "properties": {
@@ -140,6 +187,114 @@
     },
     "required": [
       "products"
+    ]
+  },
+  "vkusvill_products_discount": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "default": "card",
+        "enum": [
+          "card",
+          "quantity"
+        ]
+      },
+      "page": {
+        "type": "integer",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 99999
+      },
+      "sort": {
+        "type": "string",
+        "default": "popularity",
+        "enum": [
+          "price_asc",
+          "price_desc",
+          "rating",
+          "popularity",
+          "new",
+          "name_asc",
+          "name_desc"
+        ]
+      },
+      "vvonly": {
+        "type": "integer",
+        "default": 1,
+        "minimum": 0,
+        "maximum": 1
+      }
+    }
+  },
+  "vkusvill_product_lp": {
+    "type": "object",
+    "properties": {}
+  },
+  "vkusvill_recipes": {
+    "type": "object",
+    "properties": {
+      "sort": {
+        "type": "string",
+        "enum": [
+          "popularity",
+          "new"
+        ]
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 99999
+      },
+      "q": {
+        "type": "string",
+        "minLength": 0,
+        "maxLength": 255
+      },
+      "id_feature_filter": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_cooking_time_filter": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_cooking_method_filter": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_complexity_filter": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_category_filter": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 999999999
+      },
+      "id_exclude_allergens_filter": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999999
+        }
+      }
+    },
+    "required": [
+      "sort",
+      "page",
+      "q",
+      "id_feature_filter",
+      "id_cooking_time_filter",
+      "id_cooking_method_filter",
+      "id_complexity_filter",
+      "id_category_filter",
+      "id_exclude_allergens_filter"
     ]
   }
 }

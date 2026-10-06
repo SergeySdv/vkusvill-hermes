@@ -8,6 +8,16 @@ from vv.errors import Code, VVError
 from vv.mcp_provider import discover_public, require_schema, transport_error, unpack_result
 
 
+def test_sdk_timeout_is_sanitized():
+    from mcp.shared.exceptions import McpError
+    from mcp.types import ErrorData
+
+    error = McpError(ErrorData(code=408, message="SECRET_SENTINEL"))
+    assert transport_error(error).code == Code.NETWORK_ERROR
+    assert transport_error(error, side_effect=True).code == Code.OUTCOME_UNKNOWN
+    assert "SECRET_SENTINEL" not in transport_error(error).message
+
+
 @pytest.mark.parametrize("status", [401, 403])
 def test_auth_required_without_secret_echo(status):
     response = httpx.Response(status, request=httpx.Request("GET", "https://example.invalid"))
