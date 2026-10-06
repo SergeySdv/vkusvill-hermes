@@ -26,7 +26,7 @@ def invoke(*arguments):
 
 
 def test_version_and_doctor():
-    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.2.0"
+    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.3.0"
     for arguments in [("--json", "doctor"), ("doctor", "--json")]:
         result, body = invoke(*arguments)
         assert result.exit_code == 0
