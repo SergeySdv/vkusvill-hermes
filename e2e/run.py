@@ -115,7 +115,7 @@ def main():
         environment.pop("VV_MCP_TEST_URL", None)
         environment.pop("VV_TEST_MODE", None)
         commands = [
-            [HERMES, "skills", "install", "SergeySdv/vkusvill-hermes/skills/vkusvill"],
+            [HERMES, "skills", "install", "SergeySdv/vkusvill-hermes/skills/vkusvill", "--yes"],
             [sys.executable, str(home / "skills/vkusvill/scripts/setup.py")],
             [
                 sys.executable,
