@@ -2,7 +2,7 @@
 
 ## 0.3.0 — 2026-10-06
 
-- Pin skill runtime to published CLI commit 3cde6fe (all ten adapters).
+- Pin skill runtime to CLI 0.3.0 commit 02bee28 (all ten adapters).
 - Release installation gate verifies pristine skill bytes, pip commit provenance and installed code.
 - Real previous-runtime upgrade with preserved profile baskets, failed download/doctor recovery,
   and repeat installation; no model credentials or real cart mutations.

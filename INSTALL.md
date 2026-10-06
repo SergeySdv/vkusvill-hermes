@@ -58,9 +58,8 @@ An unchanged, successfully installed runtime is reused. State is kept separately
 under integrations/vkusvill/state unless VV_STATE_DIR is explicitly set.
 Setup does not configure OAuth or consume credentials.
 
-This candidate pins CLI commit `3cde6fe9138b740711cdfd50296e5465d6cacb89`,
-which contains all ten adapters. Older and newer commits may both report 0.2.0;
-version alone is not sufficient: setup must report the expected revision, and
+This skill pins CLI 0.3.0, commit `02bee28cd9f5a7fc563da9635ee4d5519873c936`,
+which contains all ten adapters. Setup must report the expected revision, and
 `vv product barcode --help`, `vv discount search --help`, `vv recipe search --help`,
 `vv shop search --help`, `vv orders list --help`, `vv favorite show --help` must exist.
 
