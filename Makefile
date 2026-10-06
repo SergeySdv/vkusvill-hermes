@@ -27,6 +27,10 @@ e2e-install: e2e-build
 e2e-candidate-install: e2e-build
 	uv run --locked python -m e2e.docker candidate-install
 
+.PHONY: release-check
+release-check: e2e-build
+	uv run --locked python -m e2e.docker release
+
 .PHONY: e2e-agent-suite
 e2e-agent-suite: e2e-build
 	test -n "$(E2E_ENV_FILE)"

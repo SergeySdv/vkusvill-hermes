@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-06
+
+- Pin skill runtime to published CLI commit 3cde6fe (all ten adapters).
+- Release installation gate verifies pristine skill bytes, pip commit provenance and installed code.
+- Real previous-runtime upgrade with preserved profile baskets, failed download/doctor recovery,
+  and repeat installation; no model credentials or real cart mutations.
 
 - Adapters and reviewed input schemas for all ten advertised MCP tools: barcode, discounts,
   recipes, shops, orders and favorite added, with local argument validation and protocol tests.
 - Preserve recipe/shop filters and discount terms; map provider auth/not-found errors without raw text.
 - OAuth remains unsupported; personal success responses are synthetic-tested, not account-verified.
-- Bootstrap still pins the published CLI; new commands require the working checkout until release.
+- Updated skill publication remains separate from CLI publication; main is not changed automatically.
 
 - Protocol regressions for HTTP failures, timeouts, pagination, profile isolation and post-mutation disconnects.
 - Fail closed on repeated discovery cursors and ambiguous MCP tool errors after link submission.

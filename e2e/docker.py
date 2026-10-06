@@ -9,7 +9,9 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=["smoke", "agent", "install", "candidate-install"])
+    parser.add_argument(
+        "mode", choices=["smoke", "agent", "install", "candidate-install", "release"]
+    )
     parser.add_argument(
         "--scenario",
         choices=["search", "basket", "unknown", "price-change", "uncertain"],
@@ -48,7 +50,11 @@ def main():
     ]
     if args.env_file:
         command += ["--env-file", str(args.env_file.resolve())]
-    command += [args.image, "-m", "e2e.run", args.mode, "--scenario", args.scenario]
+    if args.mode == "release":
+        command += [args.image, "-m", "e2e.release"]
+    else:
+        command += [args.image, "-m", "e2e.run", args.mode, "--scenario", args.scenario]
+    timeout = 1800 if args.mode == "release" else 420
     created = False
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
@@ -62,7 +68,7 @@ def main():
         (output / "image.json").write_text(json.dumps({"image_id": image}))
         with (output / "container.log").open("w") as log:
             result = subprocess.run(
-                ["docker", "start", "--attach", name], stdout=log, stderr=log, timeout=420
+                ["docker", "start", "--attach", name], stdout=log, stderr=log, timeout=timeout
             )
         subprocess.run(
             ["docker", "cp", f"{name}:/opt/data/results/.", str(output)],
@@ -77,7 +83,7 @@ def main():
         print(f"Artifacts: {output}")
         return result.returncode if report.exists() else 2
     except subprocess.TimeoutExpired:
-        print("Container exceeded 420 seconds; evaluation failed.")
+        print(f"Container exceeded {timeout} seconds; evaluation failed.")
         return 124
     finally:
         if created:

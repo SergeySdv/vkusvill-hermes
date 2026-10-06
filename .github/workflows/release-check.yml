@@ -1,0 +1,26 @@
+name: Release installation gate
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  release-installation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+          python-version: "3.13"
+      - run: make release-check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-installation-report
+          path: .e2e-results/*/result.json
+          if-no-files-found: error

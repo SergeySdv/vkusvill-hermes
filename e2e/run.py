@@ -11,7 +11,9 @@ import sys
 from pathlib import Path
 
 from e2e.grade import grade
+from e2e.release import revision_of
 from e2e.support import fixture_server, read_journal
+from vv import __version__
 
 ROOT = Path("/opt/candidate")
 HERMES = "/opt/hermes/.venv/bin/hermes"
@@ -172,8 +174,48 @@ def main():
                 doctor = json.loads((args.output / "install-2.out").read_text())
             except ValueError:
                 pass
+        identity_matches = False
+        command_codes = []
+        if codes == [0, 0, 0]:
+            installed = json.loads((args.output / "install-1.out").read_text())
+            identity_matches = (
+                installed.get("revision") == revision_of(ROOT / "skills/vkusvill")
+                and doctor.get("meta", {}).get("cli_version") == __version__
+            )
+            for index, command in enumerate(
+                [
+                    ["product", "barcode"],
+                    ["discount", "search"],
+                    ["recipe", "search"],
+                    ["shop", "search"],
+                    ["orders", "list"],
+                    ["favorite", "show"],
+                ]
+            ):
+                command_codes.append(
+                    execute(
+                        [
+                            sys.executable,
+                            str(home / "skills/vkusvill/scripts/vv.py"),
+                            *command,
+                            "--help",
+                        ],
+                        environment,
+                        args.output / f"command-{index}.out",
+                        args.output / f"command-{index}.err",
+                        timeout=30,
+                    )
+                )
+            if not identity_matches or command_codes != [0] * 6:
+                failure_stage = "installed_release_mismatch"
         result = {
-            "passed": codes == [0, 0, 0] and doctor.get("ok") is True and reused,
+            "passed": codes == [0, 0, 0]
+            and doctor.get("ok") is True
+            and reused
+            and identity_matches
+            and command_codes == [0] * 6,
+            "identity_matches": identity_matches,
+            "new_command_exit_codes": command_codes,
             "runtime_setup_reused": reused,
             "mode": (
                 "clean_install_published_release"

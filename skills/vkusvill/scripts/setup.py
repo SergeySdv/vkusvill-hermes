@@ -42,7 +42,7 @@ def install() -> dict:
         "revision": REVISION,
         "runtime_python": str(runtime_python()),
         "doctor": result,
-        "capabilities": "public_search_details_analogs_and_cart_links",
+        "capabilities": "ten_mcp_adapters_oauth_not_configured",
     }
 
 
