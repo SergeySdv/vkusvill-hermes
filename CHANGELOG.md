@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Separate local installer readiness from live MCP availability: setup uses local doctor,
+  exposes provider_checked=false, and remains usable during upstream outages.
+- Regression checks for setup, repeated setup and launcher behavior during HTTP 502/503.
+
 ## 0.3.0 — 2026-10-06
 
 - Pin skill runtime to CLI 0.3.0 commit 02bee28 (all ten adapters).

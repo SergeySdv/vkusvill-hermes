@@ -20,7 +20,9 @@ metadata:
 [scripts/setup.py](scripts/setup.py). Он использует [scripts/runtime.py](scripts/runtime.py)
 для отдельного Python-окружения с закреплённым Git commit.
 Передай фактический HERMES_HOME активного профиля. Нужны Python 3.11+, venv/pip и Git.
-Не обходи штатный сканер Hermes. Установка должна вернуть ok=true и живой doctor.
+Не обходи штатный сканер Hermes. Установка должна вернуть ok=true и локальный doctor.
+Проверяй MCP отдельно через doctor --live: его недоступность не означает, что
+CLI не установлен. Не переустанавливай готовый runtime из-за ошибки провайдера.
 
 1. Вызывай [scripts/vv.py](scripts/vv.py):
    `python3 <путь-скилла>/scripts/vv.py doctor --live --json`.

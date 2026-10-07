@@ -234,8 +234,12 @@ def run_gate(output: Path) -> dict:
                 "VV_TEST_MODE": "1",
                 "VV_MCP_TEST_URL": fixture["env"]["VV_MCP_TEST_URL"],
             }
-            fixture["control"].write_text('{"auth_required": true}')
-            require(setup(env, expected=1)["ok"] is False, "Failed doctor should fail setup")
+            invalid_state = output / "invalid-state"
+            invalid_state.write_text("not a directory")
+            require(
+                setup({**env, "VV_STATE_DIR": str(invalid_state)}, expected=1)["ok"] is False,
+                "Failed local doctor should fail setup",
+            )
             require(not marker.exists(), "Failed doctor marked runtime ready")
             require(
                 list(marker.parent.rglob("vkusvill_hermes-*.dist-info")),
@@ -243,8 +247,22 @@ def run_gate(output: Path) -> dict:
             )
             require(state.read_bytes() == state_before, "Failed doctor changed baskets")
             require(old_marker.read_bytes() == marker_before, "Doctor failure changed old runtime")
+            fixture["control"].write_text('{"http_status": 502}')
+            installed = setup(env)
+            require(
+                installed["ok"] and installed["provider_checked"] is False,
+                "Provider outage blocked local setup",
+            )
+            require(cli("doctor", env=env)["ok"], "Local doctor failed during outage")
+            ready_before = marker.read_bytes()
+            require(
+                cli("doctor", "--live", env=env, expected=1)["error"]["code"] == "PROVIDER_ERROR",
+                "Live doctor hid provider outage",
+            )
+            require(setup(env)["reused"], "Outage forced runtime reinstall")
+            require(marker.read_bytes() == ready_before, "Outage changed ready marker")
             fixture["control"].write_text("{}")
-            require(setup(env)["ok"] is True, "Recovery failed")
+            require(cli("doctor", "--live", env=env)["ok"], "Provider recovery failed")
             verify_runtime()
             for profile in ("default", "other"):
                 require(
@@ -263,7 +281,8 @@ def run_gate(output: Path) -> dict:
                 "Repeat changed basket",
             )
         result["checks"] += [
-            "failed_doctor_not_ready",
+            "failed_local_doctor_not_ready",
+            "provider_outage_does_not_block_local_readiness",
             "upgrade_preserves_profiles_and_baskets",
             "new_commands_from_pinned_runtime",
             "repeat_preserves_checked_basket",

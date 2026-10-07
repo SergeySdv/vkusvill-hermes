@@ -43,6 +43,7 @@ Using the actual installed skill path reported by Hermes, run:
 
 ```sh
 python3 "$HERMES_HOME/skills/vkusvill/scripts/setup.py"
+python3 "$HERMES_HOME/skills/vkusvill/scripts/vv.py" doctor --json
 python3 "$HERMES_HOME/skills/vkusvill/scripts/vv.py" doctor --live --json
 ```
 
@@ -57,6 +58,11 @@ VV_RUNTIME_ROOT optionally overrides the managed runtime directory.
 An unchanged, successfully installed runtime is reused. State is kept separately
 under integrations/vkusvill/state unless VV_STATE_DIR is explicitly set.
 Setup does not configure OAuth or consume credentials.
+Setup validates the local CLI and storage without contacting MCP; provider_checked=false
+does not indicate a failure. A ready marker is written only after that local check succeeds.
+The separate doctor --live command checks provider availability. HTTP 502/503 or a
+network error there does not invalidate the installation: keep the runtime and baskets,
+report the outage and retry the live check later. Do not write ready.json manually.
 
 This skill pins CLI 0.3.0, commit `02bee28cd9f5a7fc563da9635ee4d5519873c936`,
 which contains all ten adapters. Setup must report the expected revision, and
@@ -71,7 +77,8 @@ after publication to verify the public installation path as well.
 
 ## 4. Verify and report honestly
 
-- Setup must return ok=true; launcher doctor must return ok=true.
+- Setup and local launcher doctor must return ok=true. Report live doctor separately;
+  do not label a successful local installation as failed solely because MCP is unavailable.
 - Check that vkusvill is visible through skills_list or hermes skills list.
 - Load the installed skill with skill_view. If the current session does not
   refresh discovery, start a new conversation and use /vkusvill.
