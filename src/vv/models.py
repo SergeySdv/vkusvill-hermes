@@ -95,7 +95,7 @@ class ProductSnapshot(Model):
 
 
 class Report(Model):
-    scope: Literal["local_only", "public_live"] = "local_only"
+    scope: Literal["local_only", "public_live", "authenticated_live"] = "local_only"
     checked_at: float
     expires_at: float
     catalog_scope: Literal["unverified"] = "unverified"
@@ -106,6 +106,7 @@ class Report(Model):
 
 
 class Basket(Model):
+    auth_context: str = "public"
     name: str
     revision: int = Field(ge=1)
     request: Request

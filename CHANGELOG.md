@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Development OAuth: explicit terminal PKCE login, private per-profile token storage,
+  serialized refresh, status/logout and authenticated MCP. Basket checks bind to
+  login context. Published installer pin unchanged.
+
 - Separate local installer readiness from live MCP availability: setup uses local doctor,
   exposes provider_checked=false, and remains usable during upstream outages.
 - Regression checks for setup, repeated setup and launcher behavior during HTTP 502/503.

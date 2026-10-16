@@ -15,5 +15,8 @@ build/
 *.db
 credentials*
 *token*.json
+vv-oauth-client.json
+**/auth/session.json
+**/auth/*/session.json
 .DS_Store
 .e2e-results/

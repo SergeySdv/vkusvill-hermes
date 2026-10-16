@@ -14,6 +14,7 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.exceptions import McpError
 from mcp.types import CallToolResult
 
+from vv.auth import AuthStore, credentials
 from vv.errors import Code, VVError
 from vv.models import CartPayload, ProductSnapshot, Request
 from vv.normalize import normalize_product
@@ -158,6 +159,9 @@ async def discover_public() -> list[dict]:
 class MCPProvider:
     def __init__(self):
         self.endpoint = configured_endpoint()
+        session = AuthStore().read()
+        self.auth_context = session["context"] if session else "public"
+        self.headers = {}
         self.schemas = json.loads(files("vv").joinpath("schemas.json").read_text())
         for logger_name in ("mcp", "httpx", "httpcore"):
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)
@@ -166,7 +170,9 @@ class MCPProvider:
         sent_mutation = False
         try:
             async with asyncio.timeout(90):
-                async with httpx.AsyncClient(timeout=30) as client:
+                async with httpx.AsyncClient(
+                    timeout=30, headers=self.headers, follow_redirects=False
+                ) as client:
                     async with streamable_http_client(self.endpoint, http_client=client) as streams:
                         async with ClientSession(
                             streams[0], streams[1], read_timeout_seconds=timedelta(seconds=30)
@@ -210,11 +216,22 @@ class MCPProvider:
             raise transport_error(nested[0], side_effect=sent_mutation) from None
 
     def batch(self, calls: list[tuple[str, dict]]) -> list[dict]:
-        return asyncio.run(self._batch(calls))
+        with credentials(self.endpoint) as (headers, context):
+            if context != self.auth_context:
+                raise VVError(Code.REVIEW_REQUIRED, "OAuth context changed; repeat and review.")
+            self.headers = headers
+            try:
+                return asyncio.run(self._batch(calls))
+            finally:
+                self.headers = {}
 
     def health(self) -> dict:
         self.search("молоко", 1)
-        return {"public_mcp": "ok", "auth": "not_configured", "catalog_scope": "public_unverified"}
+        return {
+            "public_mcp": "ok",
+            "auth": "configured" if self.auth_context != "public" else "not_configured",
+            "catalog_scope": "unverified" if self.auth_context != "public" else "public_unverified",
+        }
 
     def read_tool(self, operation: str, arguments: dict, *, paginated: bool = False) -> dict:
         name = TOOLS[operation]

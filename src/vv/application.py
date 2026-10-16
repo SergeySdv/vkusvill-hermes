@@ -37,6 +37,9 @@ class Application:
             if current != basket:
                 raise VVError(Code.REVIEW_REQUIRED, "Basket changed during refresh.")
             basket.report = report
+            basket.auth_context = getattr(self.provider, "auth_context", "public")
+            if refresh and basket.auth_context != "public":
+                report.scope = "authenticated_live"
             basket.state = State.CHECKED
             basket.link = None
             basket.check_hash = checked_hash(self.store.profile, basket)
@@ -46,7 +49,8 @@ class Application:
     def validate_check(self, basket: Basket, supplied_hash: str):
         idle(basket)
         if (
-            basket.state not in (State.CHECKED, State.LINK_CREATED)
+            basket.auth_context != getattr(self.provider, "auth_context", "public")
+            or basket.state not in (State.CHECKED, State.LINK_CREATED)
             or basket.report is None
             or basket.check_hash is None
             or not supplied_hash.isascii()
@@ -63,7 +67,10 @@ class Application:
                     else Code.REVIEW_REQUIRED
                 )
                 raise VVError(code, "A required basket check failed or remains unknown.")
-        if basket.report.scope != "public_live" or basket.report.payload is None:
+        if (
+            basket.report.scope not in ("public_live", "authenticated_live")
+            or basket.report.payload is None
+        ):
             raise VVError(Code.REVIEW_REQUIRED, "Run basket check --refresh first.")
 
     def link(self, name: str, supplied_hash: str):
@@ -72,6 +79,8 @@ class Application:
         if basket.state == State.LINK_CREATED:
             return basket
         fresh = live_report(basket.request, self.provider.refresh(basket.request))
+        if basket.auth_context != "public":
+            fresh.scope = "authenticated_live"
         if comparable_report(fresh) != comparable_report(basket.report):
             raise VVError(
                 Code.REVIEW_REQUIRED, "Provider facts changed; run check --refresh and review."
