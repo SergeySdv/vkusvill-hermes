@@ -72,6 +72,8 @@ class Application:
             or basket.report.payload is None
         ):
             raise VVError(Code.REVIEW_REQUIRED, "Run basket check --refresh first.")
+        if any(item.id is None for item in basket.report.payload.products):
+            raise VVError(Code.REVIEW_REQUIRED, "Legacy cart identifiers require check --refresh.")
 
     def link(self, name: str, supplied_hash: str):
         basket = self.store.show(name)

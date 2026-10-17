@@ -57,13 +57,17 @@ def test_real_sdk_cli_workflow(protocol, tmp_path):
     assert link(protocol, checked)["ok"]
     journal = read_journal(protocol["journal"])
     mutations = [event for event in journal if event["name"] == "vkusvill_cart_link_create"]
-    assert [event["arguments"] for event in mutations] == [
-        {"products": [{"xml_id": 901, "q": 2.0}]}
-    ]
+    assert [event["arguments"] for event in mutations] == [{"products": [{"id": 101, "q": 2.0}]}]
     assert journal[1]["arguments"]["q"] == "$(touch NEVER)"
     from vv.mcp_provider import TOOLS
 
-    assert {event["name"] for event in journal} == set(TOOLS.values())
+    assert {event["name"] for event in journal} == set(TOOLS.values()) - {TOOLS["personal"]}
+    assert invoke(protocol["env"], "discount", "personal")["error"]["code"] == "REVIEW_REQUIRED"
+    assert (
+        invoke(protocol["env"], "discount", "personal", "--confirm")["error"]["code"]
+        == "AUTH_REQUIRED"
+    )
+    assert read_journal(protocol["journal"]) == journal
     assert journal[4]["arguments"] == {"barcode": "0012345678901"}
     assert journal[6]["arguments"]["q"] == "$(touch NEVER)"
     assert journal[6]["arguments"]["id_exclude_allergens_filter"] == [1]

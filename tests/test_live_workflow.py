@@ -74,7 +74,7 @@ def test_complete_public_workflow_and_dedup(live_service, public_request):
     linked = live_service.link("dinner", checked.check_hash)
     assert linked.state == State.LINK_CREATED
     assert linked.link == "https://vkusvill.ru/?share_basket=123"
-    assert live_service.provider.payload.products[0].xml_id == 901
+    assert live_service.provider.payload.products[0].id == 101
     assert live_service.provider.links == 1
     assert live_service.link("dinner", checked.check_hash) == linked
     assert live_service.provider.links == 1
@@ -257,7 +257,7 @@ def test_live_sdk_boundary_checks_schema_before_call(monkeypatch):
     assert calls == []
 
 
-def test_mcp_create_link_uses_xml_id_and_numeric_quantity(monkeypatch):
+def test_mcp_create_link_uses_id_and_numeric_quantity(monkeypatch):
     provider = MCPProvider()
     calls = []
 
@@ -266,8 +266,8 @@ def test_mcp_create_link_uses_xml_id_and_numeric_quantity(monkeypatch):
         return [{"link": "https://vkusvill.ru/?share_basket=123"}]
 
     monkeypatch.setattr(provider, "batch", batch)
-    provider.create_link(CartPayload(products=[{"xml_id": 901, "q": "0.5"}]))
-    assert calls == [(TOOLS["link"], {"products": [{"xml_id": 901, "q": 0.5}]})]
+    provider.create_link(CartPayload(products=[{"id": 101, "q": "0.5"}]))
+    assert calls == [(TOOLS["link"], {"products": [{"id": 101, "q": 0.5}]})]
 
 
 def test_nested_transport_error_is_sanitized():
@@ -280,9 +280,9 @@ def test_nested_transport_error_is_sanitized():
 
 
 def test_same_sku_merged_before_quantity_limit(product, public_request):
-    second = product.model_copy(update={"product_id": 102})
+    second = product.model_copy()
     public_request.items[0].quantity = "20"
-    public_request.items.append(public_request.items[0].model_copy(update={"product_id": 102}))
+    public_request.items.append(public_request.items[0].model_copy())
     report = live_report(public_request, [product, second])
     assert len(report.payload.products) == 1
     assert report.payload.products[0].q == Decimal("40")
@@ -293,8 +293,8 @@ def test_same_sku_merged_before_quantity_limit(product, public_request):
 
 
 def test_conflicting_sku_sale_bases_rejected(product, public_request):
-    second = product.model_copy(update={"product_id": 102, "price": Decimal("150")})
-    public_request.items.append(public_request.items[0].model_copy(update={"product_id": 102}))
+    second = product.model_copy(update={"price": Decimal("150")})
+    public_request.items.append(public_request.items[0].model_copy())
     with pytest.raises(VVError) as caught:
         live_report(public_request, [product, second])
     assert caught.value.code == Code.SCHEMA_CHANGED

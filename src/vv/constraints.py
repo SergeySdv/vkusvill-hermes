@@ -33,7 +33,7 @@ def normalize_request(request: Request) -> Request:
 def local_report() -> Report:
     now = time.time()
     unknown = {
-        "provider_ids": "Product id to xml_id mapping has not been verified.",
+        "provider_ids": "Product ids have not been verified against fresh details.",
         "quantity": "Human units are not verified provider quantities; q is unknown.",
         "budget": "Prices and delivery costs are unknown.",
         "hard_exclusions": "No verified composition evidence.",
@@ -70,9 +70,9 @@ def _live_report(request: Request, products: list[ProductSnapshot]) -> Report:
     quantity_status = Status.PASS
     for item, product in zip(request.items, products, strict=True):
         sale_basis = (product.unit, product.price, product.currency)
-        if product.xml_id in sale_bases and sale_bases[product.xml_id] != sale_basis:
+        if product.product_id in sale_bases and sale_bases[product.product_id] != sale_basis:
             raise VVError(Code.SCHEMA_CHANGED, "One SKU has conflicting sale units or prices.")
-        sale_bases[product.xml_id] = sale_basis
+        sale_bases[product.product_id] = sale_basis
         quantity = Decimal(item.quantity)
         if product.unit == "шт" and item.unit in ("piece", "package"):
             if quantity != quantity.to_integral_value():
@@ -84,7 +84,7 @@ def _live_report(request: Request, products: list[ProductSnapshot]) -> Report:
                 quantity_status = Status.FAIL
         else:
             quantity_status = Status.UNKNOWN if quantity_status != Status.FAIL else Status.FAIL
-        quantities[product.xml_id] = quantities.get(product.xml_id, Decimal("0")) + quantity
+        quantities[product.product_id] = quantities.get(product.product_id, Decimal("0")) + quantity
         if product.price is None or product.currency != "RUB":
             price_known = False
         else:
@@ -94,8 +94,7 @@ def _live_report(request: Request, products: list[ProductSnapshot]) -> Report:
         try:
             payload = CartPayload(
                 products=[
-                    {"xml_id": identifier, "q": quantity}
-                    for identifier, quantity in quantities.items()
+                    {"id": identifier, "q": quantity} for identifier, quantity in quantities.items()
                 ]
             )
         except ValidationError:

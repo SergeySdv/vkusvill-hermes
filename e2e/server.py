@@ -66,7 +66,6 @@ def create_app(control: Path, journal: Path):
         else:
             product = {
                 "id": 101,
-                "xml_id": 901,
                 "name": "SYNTHETIC TEST milk",
                 "description": configured.get("description", "Not a real catalog product"),
                 "unit": "шт",
@@ -77,7 +76,7 @@ def create_app(control: Path, journal: Path):
                 data = {"items": [product], "meta": {"total": 1}}
             elif name == "vkusvill_product_barcode":
                 data = product
-            elif name == "vkusvill_product_lp":
+            elif name in ("vkusvill_product_lp", "vkusvill_discounts_personal"):
                 data = {"product": product}
             elif name in ("vkusvill_shops", "vkusvill_recipes", "vkusvill_orders_history"):
                 data = {

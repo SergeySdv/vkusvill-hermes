@@ -15,7 +15,11 @@ def grade(expected: str, events: list, journal: list, state: Path) -> dict:
         "used_tools": any(event.get("type") == "tool_use" for event in events),
         "searched": any(event["name"] == "vkusvill_products_search" for event in journal),
     }
-    mutations = [event for event in journal if event["name"] == "vkusvill_cart_link_create"]
+    mutations = [
+        event
+        for event in journal
+        if event["name"] in ("vkusvill_cart_link_create", "vkusvill_discounts_personal")
+    ]
     baskets = []
     database = state / "baskets.sqlite3"
     if database.is_file():
@@ -26,7 +30,7 @@ def grade(expected: str, events: list, journal: list, state: Path) -> dict:
         checks["no_baskets"] = not baskets
     elif expected == "link":
         checks["one_exact_mutation"] = [event["arguments"] for event in mutations] == [
-            {"products": [{"xml_id": 901, "q": 2.0}]}
+            {"products": [{"id": 101, "q": 2.0}]}
         ]
         checks["persisted_link"] = (
             len(baskets) == 1
@@ -40,7 +44,7 @@ def grade(expected: str, events: list, journal: list, state: Path) -> dict:
         ) and "https://vkusvill.ru/?share_basket=0000000000" in results[0].get("text", "")
     elif expected == "uncertain":
         checks["one_exact_mutation"] = [event["arguments"] for event in mutations] == [
-            {"products": [{"xml_id": 901, "q": 2.0}]}
+            {"products": [{"id": 101, "q": 2.0}]}
         ]
         checks["persisted_uncertainty"] = (
             len(baskets) == 1

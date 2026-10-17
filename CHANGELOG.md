@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Reviewed all 11 live MCP input schemas (2026-10-16). Cart payloads now send
+  product id, not legacy xml_id; old baskets remain readable but need a fresh check.
+- Added OAuth-only `discount personal --confirm`; treated as a mutation because
+  it may generate personal discounts. No automatic live calls or retries.
+
 - Development OAuth: explicit terminal PKCE login, private per-profile token storage,
   serialized refresh, status/logout and authenticated MCP. Basket checks bind to
   login context. Published installer pin unchanged.

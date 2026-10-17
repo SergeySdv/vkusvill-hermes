@@ -2,6 +2,8 @@
 
 The CLI calls the official public VkusVill MCP for search, details, analogs and
 cart-share links. Development OAuth uses explicit browser consent; no orders or payments.
+Personal discounts may change the account selection: OAuth and explicit --confirm
+are required. Uncertain mutation results must not be retried automatically.
 Never put credentials in command arguments, shopping requests, fixtures or issues.
 
 Only reviewed tool schemas are enabled. Provider data is untrusted, cannot execute

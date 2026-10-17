@@ -320,8 +320,9 @@ def test_lock_serializes_sessions(auth_home):
     assert entered.is_set()
 
 
-@pytest.mark.parametrize("status_code", [200, 401, 503])
-def test_authenticated_mcp_sdk_transport(auth_home, monkeypatch, status_code):
+@pytest.mark.parametrize("status_code", [200, 401, 503, "malformed"])
+@pytest.mark.parametrize("tool", ["vkusvill_product_lp", "vkusvill_discounts_personal"])
+def test_authenticated_mcp_sdk_transport(auth_home, monkeypatch, status_code, tool):
     seed(auth_home)
     provider = MCPProvider()
     requests = []
@@ -345,13 +346,22 @@ def test_authenticated_mcp_sdk_transport(auth_home, monkeypatch, status_code):
             result = {
                 "tools": [
                     {
-                        "name": "vkusvill_product_lp",
-                        "inputSchema": provider.schemas["vkusvill_product_lp"],
+                        "name": tool,
+                        "inputSchema": provider.schemas[tool],
                     }
                 ]
             }
         else:
             assert method == "tools/call"
+            if status_code == "malformed":
+                return httpx.Response(
+                    200,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": body["id"],
+                        "result": {"content": [{"type": "text", "text": "not JSON"}]},
+                    },
+                )
             if status_code != 200:
                 return httpx.Response(status_code, text="SECRET provider details")
             result = {
@@ -368,12 +378,18 @@ def test_authenticated_mcp_sdk_transport(auth_home, monkeypatch, status_code):
         lambda **kwargs: original(transport=httpx.MockTransport(handle), **kwargs),
     )
     if status_code == 200:
-        assert PROVIDER_BATCH(provider, [("vkusvill_product_lp", {})]) == [{"test": True}]
+        assert PROVIDER_BATCH(provider, [(tool, {})]) == [{"test": True}]
     else:
         with pytest.raises(VVError) as raised:
-            PROVIDER_BATCH(provider, [("vkusvill_product_lp", {})])
+            PROVIDER_BATCH(provider, [(tool, {})])
         assert raised.value.code == (
-            Code.AUTH_REQUIRED if status_code == 401 else Code.PROVIDER_ERROR
+            Code.AUTH_REQUIRED
+            if status_code == 401
+            else Code.OUTCOME_UNKNOWN
+            if tool == "vkusvill_discounts_personal"
+            else Code.SCHEMA_CHANGED
+            if status_code == "malformed"
+            else Code.PROVIDER_ERROR
         )
         assert "SECRET" not in str(raised.value)
     calls = [

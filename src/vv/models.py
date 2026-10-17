@@ -58,8 +58,15 @@ class Request(Model):
 
 
 class CartLine(Model):
-    xml_id: PositiveID
+    id: PositiveID | None = None
+    xml_id: PositiveID | None = None
     q: Annotated[Decimal, Field(ge=Decimal("0.01"), le=Decimal("40"))]
+
+    @model_validator(mode="after")
+    def identifier_contract(self):
+        if (self.id is None) == (self.xml_id is None):
+            raise ValueError("Exactly one current id or legacy xml_id is required")
+        return self
 
 
 class CartPayload(Model):
@@ -67,7 +74,7 @@ class CartPayload(Model):
 
     @model_validator(mode="after")
     def unique_skus(self):
-        identifiers = [item.xml_id for item in self.products]
+        identifiers = [(item.id, item.xml_id) for item in self.products]
         if len(set(identifiers)) != len(identifiers):
             raise ValueError("Duplicate SKU: normalize verified units before constructing payload")
         return self
@@ -81,7 +88,7 @@ class Finding(Model):
 
 class ProductSnapshot(Model):
     product_id: PositiveID
-    xml_id: PositiveID
+    xml_id: PositiveID | None = None
     name: str
     description: str = ""
     price: Annotated[Decimal, Field(ge=0)] | None = None

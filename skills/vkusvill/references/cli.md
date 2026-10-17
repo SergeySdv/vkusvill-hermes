@@ -3,6 +3,12 @@
 Запуск: `python3 <путь-скилла>/scripts/vv.py ...`; далее vv — это сокращение.
 HERMES_HOME должен соответствовать активному профилю и установке.
 
+Development-дополнение (не в опубликованном pin):
+`vv discount personal --confirm --json` — OAuth, явное разрешение на потенциальное
+изменение подборки персональных скидок. Без --confirm: REVIEW_REQUIRED;
+без входа: AUTH_REQUIRED. Не вызывается автоматически, не повторяется при
+OUTCOME_UNKNOWN. Development использует актуальные схемы 11 tools и cart `id`.
+
 | Команда | Поведение |
 | --- | --- |
 | vv --version | Текст; vv --json --version возвращает envelope |
@@ -77,14 +83,15 @@ unit: piece/package/kg/g/l/ml; l/ml пока не преобразуются а�
 Другие поля, цены и xml_id в запросе запрещены. Файл ≤1 MiB; до 1000 исходных
 строк, после нормализации 1–20 product_id. Имена: 1–64 ASCII буквы/цифры/_/-.
 Одинаковые id с разными человеческими единицами отклоняются.
-Перед отправкой объединяются xml_id; 1–20 SKU, q ∈ [0.01,40].
+В development CLI передаются проверенные id; 1–20 товаров, q ∈ [0.01,40].
+Legacy xml_id хранится только для чтения старых корзин; требуется check --refresh.
 Для шт требуются целые piece/package; для кг — kg/g с точностью 0.01 кг.
 Шаг и окончательная фасовка дополнительно проверяются самим магазином.
 
 ## Отчёт
 
 scope=local_only или public_live. products — подтверждённые карточки со временем,
-источником и отдельными product_id/xml_id. payload — вычисленный вход cart tool.
+источником и product_id (legacy xml_id может быть null). payload — вычисленный вход cart tool.
 goods_total — decimal-строка или null; это оценка товаров без доставки.
 checks: status=pass/fail/unknown, evidence, blocking.
 

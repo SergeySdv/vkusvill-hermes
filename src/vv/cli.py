@@ -184,6 +184,17 @@ def discount_search(
     )
 
 
+@discount.command("personal")
+def discount_personal(
+    confirm: Annotated[bool, typer.Option("--confirm")] = False,
+    json_output: JsonFlag = False,
+):
+    emit(
+        application().provider.personal_discounts(confirm),
+        warnings=["PERSONAL_DISCOUNTS: this call may update the account's discount selection."],
+    )
+
+
 @recipe.command("search")
 def recipe_search(
     query: Annotated[str, typer.Argument()] = "",

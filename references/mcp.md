@@ -1,7 +1,7 @@
 # MCP implementation and trust boundaries
 
-Live discovery and public reads were inspected on 2026-10-05.
-src/vv/schemas.json stores the four reviewed input schemas. Runtime discovery
+Live discovery and public reads were inspected on 2026-10-16.
+src/vv/schemas.json stores eleven reviewed input schemas. Runtime discovery
 checks their structural contract; descriptive prose is not executable policy.
 Other discovered tools are not enabled. A new required field fails closed.
 
@@ -16,10 +16,19 @@ is decoded, never eval. The provider's nested ok/data envelope is separately che
 Product facts are validated and normalized; remote descriptions remain untrusted.
 Schema drift and incompatible product responses return SCHEMA_CHANGED.
 
-The public endpoint is fixed to https://mcp.vkusvill.ru/mcp. This release does not
-forward tokens or accept arbitrary server URLs. SDK/http logs are suppressed at
+The endpoint is fixed to https://mcp.vkusvill.ru/mcp. Development OAuth forwards
+credentials only to its trusted origin, never test URLs. SDK/http logs are suppressed at
 the CLI boundary. Product text is never passed to a shell or an LLM by this code.
-The only mutating tool enabled is cart-link creation, not checkout.
+Mutating tools are cart-link creation and personal discounts, never checkout.
+Personal discounts require OAuth and explicit `discount personal --confirm`:
+the first daily call can generate a selection. Never use it in doctor, discovery,
+background checks or retry it automatically on uncertain outcomes.
+
+Current cart lines use product `id`, not `xml_id`. The legacy field is retained
+only for reading old snapshots/payloads; it is never guessed or sent. Old checked
+baskets require refresh. Equal legacy xml_ids never merge different product ids.
+Search no longer advertises xml_id. Orders retain provider products and timestamps;
+personal discounts are returned as provider data, not invented normalized records.
 
 Provider schema currently says cart maxItems=30, while its own description says
 1–20. The application keeps the stricter 20-item contract. The link parser accepts

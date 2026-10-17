@@ -20,7 +20,7 @@ Resource scopes differ from issuer scopes: specify scopes granted to your client
 Discovery does not establish client-specific permissions or redirect URIs.
 
 Public tool documentation now uses cart `id` instead of `xml_id` and adds personal
-discounts. Schema migration is separate; strict SCHEMA_CHANGED checks remain.
+discounts. This branch implements that migration; strict SCHEMA_CHANGED checks remain.
 
 ## Human-operated login
 
