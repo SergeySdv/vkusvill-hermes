@@ -105,7 +105,6 @@
           "type": "string",
           "enum": [
             "id",
-            "xml_id",
             "name",
             "slug",
             "description",
@@ -169,7 +168,7 @@
         "items": {
           "type": "object",
           "properties": {
-            "xml_id": {
+            "id": {
               "type": "integer",
               "minimum": 1,
               "maximum": 999999999
@@ -228,6 +227,10 @@
     }
   },
   "vkusvill_product_lp": {
+    "type": "object",
+    "properties": {}
+  },
+  "vkusvill_discounts_personal": {
     "type": "object",
     "properties": {}
   },

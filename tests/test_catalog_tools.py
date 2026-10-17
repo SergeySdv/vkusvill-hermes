@@ -9,8 +9,8 @@ from vv.errors import Code, VVError
 from vv.mcp_provider import TOOLS, MCPProvider, provider_data
 
 
-def test_all_ten_tools_have_reviewed_schemas():
-    assert len(TOOLS) == 10
+def test_all_eleven_tools_have_reviewed_schemas():
+    assert len(TOOLS) == 11
     assert set(TOOLS.values()) == set(MCPProvider().schemas)
 
 

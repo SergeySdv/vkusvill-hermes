@@ -27,6 +27,8 @@ def checked_hash(profile: str, basket: Basket) -> str:
         "request": basket.request.model_dump(mode="json"),
         "report": basket.report.model_dump(mode="json") if basket.report else None,
     }
+    if basket.auth_context != "public":
+        value["auth_context"] = basket.auth_context
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     ).hexdigest()

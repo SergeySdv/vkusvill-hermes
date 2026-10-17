@@ -14,6 +14,7 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.exceptions import McpError
 from mcp.types import CallToolResult
 
+from vv.auth import AuthStore, credentials
 from vv.errors import Code, VVError
 from vv.models import CartPayload, ProductSnapshot, Request
 from vv.normalize import normalize_product
@@ -30,6 +31,7 @@ TOOLS = {
     "shops": "vkusvill_shops",
     "orders": "vkusvill_orders_history",
     "favorite": "vkusvill_product_lp",
+    "personal": "vkusvill_discounts_personal",
 }
 
 
@@ -56,7 +58,7 @@ def transport_error(error: Exception, *, side_effect: bool = False) -> VVError:
     if isinstance(error, httpx.HTTPStatusError) and error.response.status_code in (401, 403):
         return VVError(Code.AUTH_REQUIRED, "This operation requires trusted OAuth onboarding.")
     if side_effect:
-        return VVError(Code.OUTCOME_UNKNOWN, "Link outcome is unknown; do not retry blindly.")
+        return VVError(Code.OUTCOME_UNKNOWN, "Mutation outcome is unknown; do not retry blindly.")
     if isinstance(error, (httpx.TransportError, TimeoutError)) or (
         isinstance(error, McpError) and error.error.code == httpx.codes.REQUEST_TIMEOUT
     ):
@@ -158,6 +160,9 @@ async def discover_public() -> list[dict]:
 class MCPProvider:
     def __init__(self):
         self.endpoint = configured_endpoint()
+        session = AuthStore().read()
+        self.auth_context = session["context"] if session else "public"
+        self.headers = {}
         self.schemas = json.loads(files("vv").joinpath("schemas.json").read_text())
         for logger_name in ("mcp", "httpx", "httpcore"):
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)
@@ -166,7 +171,9 @@ class MCPProvider:
         sent_mutation = False
         try:
             async with asyncio.timeout(90):
-                async with httpx.AsyncClient(timeout=30) as client:
+                async with httpx.AsyncClient(
+                    timeout=30, headers=self.headers, follow_redirects=False
+                ) as client:
                     async with streamable_http_client(self.endpoint, http_client=client) as streams:
                         async with ClientSession(
                             streams[0], streams[1], read_timeout_seconds=timedelta(seconds=30)
@@ -194,7 +201,7 @@ class MCPProvider:
                                 require_schema(discovered[name], self.schemas[name])
                             results = []
                             for name, arguments in calls:
-                                sent_mutation = name == TOOLS["link"]
+                                sent_mutation = name in (TOOLS["link"], TOOLS["personal"])
                                 result = await session.call_tool(name, arguments)
                                 results.append(provider_data(result))
                             return results
@@ -202,19 +209,31 @@ class MCPProvider:
             nested = leaves(error)
             for leaf in nested:
                 if isinstance(leaf, VVError):
-                    if sent_mutation and leaf.code == Code.PROVIDER_ERROR:
+                    if sent_mutation and leaf.code in (Code.PROVIDER_ERROR, Code.SCHEMA_CHANGED):
                         raise VVError(
-                            Code.OUTCOME_UNKNOWN, "Link outcome is unknown; do not retry blindly."
+                            Code.OUTCOME_UNKNOWN,
+                            "Mutation outcome is unknown; do not retry blindly.",
                         ) from None
                     raise leaf from None
             raise transport_error(nested[0], side_effect=sent_mutation) from None
 
     def batch(self, calls: list[tuple[str, dict]]) -> list[dict]:
-        return asyncio.run(self._batch(calls))
+        with credentials(self.endpoint) as (headers, context):
+            if context != self.auth_context:
+                raise VVError(Code.REVIEW_REQUIRED, "OAuth context changed; repeat and review.")
+            self.headers = headers
+            try:
+                return asyncio.run(self._batch(calls))
+            finally:
+                self.headers = {}
 
     def health(self) -> dict:
         self.search("молоко", 1)
-        return {"public_mcp": "ok", "auth": "not_configured", "catalog_scope": "public_unverified"}
+        return {
+            "public_mcp": "ok",
+            "auth": "configured" if self.auth_context != "public" else "not_configured",
+            "catalog_scope": "unverified" if self.auth_context != "public" else "public_unverified",
+        }
 
     def read_tool(self, operation: str, arguments: dict, *, paginated: bool = False) -> dict:
         name = TOOLS[operation]
@@ -269,6 +288,13 @@ class MCPProvider:
     def favorite(self) -> dict:
         return self.read_tool("favorite", {})
 
+    def personal_discounts(self, confirm: bool = False) -> dict:
+        if not confirm:
+            raise VVError(Code.REVIEW_REQUIRED, "Personal discounts may change; pass --confirm.")
+        if self.auth_context == "public":
+            raise VVError(Code.AUTH_REQUIRED, "Personal discounts require explicit OAuth login.")
+        return self.read_tool("personal", {})
+
     def search(self, query: str, limit: int, page: int = 1) -> dict:
         if not 1 <= len(query) <= 255 or not 1 <= limit <= 10 or not 1 <= page <= 99999:
             raise VVError(
@@ -307,8 +333,8 @@ class MCPProvider:
         return self.products([item.product_id for item in request.items])
 
     def create_link(self, payload: CartPayload) -> str:
-        arguments = {
-            "products": [{"xml_id": item.xml_id, "q": float(item.q)} for item in payload.products]
-        }
+        if any(item.id is None for item in payload.products):
+            raise VVError(Code.REVIEW_REQUIRED, "Legacy cart identifiers require check --refresh.")
+        arguments = {"products": [{"id": item.id, "q": float(item.q)} for item in payload.products]}
         data = self.batch([(TOOLS["link"], arguments)])[0]
         return valid_link(data.get("link"))

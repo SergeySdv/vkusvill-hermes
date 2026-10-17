@@ -1,5 +1,9 @@
 # Implementation brief — 0.2.0
 
+Historical release brief. Current development implements OAuth and all eleven
+reviewed tools as of 2026-10-16, including personal discounts (explicit consent)
+and cart product id migration. See README.md and references/mcp.md for current behavior.
+
 The original design remains unchanged under references/design/.
 This release implements the public vertical slice for Hermes:
 search → details → local request → refreshed check → share link.

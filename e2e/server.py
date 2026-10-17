@@ -28,7 +28,7 @@ def create_app(control: Path, journal: Path):
     async def list_tools(request: ListToolsRequest):
         configured = settings()
         tools = []
-        for name, schema in schemas.items():
+        for name, schema in configured.get("schemas", schemas).items():
             if name == configured.get("missing_tool"):
                 continue
             schema = dict(schema)
@@ -66,18 +66,19 @@ def create_app(control: Path, journal: Path):
         else:
             product = {
                 "id": 101,
-                "xml_id": 901,
                 "name": "SYNTHETIC TEST milk",
                 "description": configured.get("description", "Not a real catalog product"),
                 "unit": "шт",
                 "price": {"current": configured.get("price", 100), "currency": "RUB"},
                 "properties": [],
             }
+            if configured.get("legacy_products"):
+                product["xml_id"] = 901
             if name in ("vkusvill_products_search", "vkusvill_products_discount"):
                 data = {"items": [product], "meta": {"total": 1}}
             elif name == "vkusvill_product_barcode":
                 data = product
-            elif name == "vkusvill_product_lp":
+            elif name in ("vkusvill_product_lp", "vkusvill_discounts_personal"):
                 data = {"product": product}
             elif name in ("vkusvill_shops", "vkusvill_recipes", "vkusvill_orders_history"):
                 data = {

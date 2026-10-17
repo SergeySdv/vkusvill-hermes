@@ -1,7 +1,9 @@
 # Security
 
 The CLI calls the official public VkusVill MCP for search, details, analogs and
-cart-share links. It does not authenticate, accept tokens, place orders or pay.
+cart-share links. Development OAuth uses explicit browser consent; no orders or payments.
+Personal discounts may change the account selection: OAuth and explicit --confirm
+are required. Uncertain mutation results must not be retried automatically.
 Never put credentials in command arguments, shopping requests, fixtures or issues.
 
 Only reviewed tool schemas are enabled. Provider data is untrusted, cannot execute
@@ -12,13 +14,16 @@ See references/mcp.md for transport, schema, timeout and link-origin protections
 Use a private state directory owned by the current OS user. Parent directories
 are not reconfigured. Shopping preferences may be sensitive; state is not encrypted.
 Avoid shared writable paths and untrusted symlinks. VV_PROFILE is organizational,
-not authentication. check_hash prevents accidental stale use, not malicious edits
+not an OS security boundary. check_hash prevents accidental stale use, not malicious edits
 by the file owner. No multiple-user credential sharing is supported.
 
 Public availability/address/prices are not authenticated. Strict unknown
 constraints block links. A pending/unknown link attempt must not be retried
 blindly; no order or payment can occur through the available commands.
-For future OAuth, use SDK PKCE and a separate secret store; do not read Hermes caches.
+OAuth uses SDK PKCE and a separate owner-only, plaintext per-profile secret store.
+Login is human-operated in a private terminal. No tokens or client secrets belong
+in chat or CLI arguments. Logout is local only; see references/oauth-onboarding.md.
+The OS account and root can read these secrets; protect backups and use a dedicated account.
 
 The skill bootstrap installs a pinned CLI source in an isolated environment only
 after an installation request. Dependencies use pyproject ranges; the development

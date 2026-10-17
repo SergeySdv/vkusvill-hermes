@@ -27,6 +27,8 @@ def test_search_no_mutation(tmp_path):
     assert grade("search", completed(), search(), tmp_path)["passed"]
     journal = [*search(), {"name": "vkusvill_cart_link_create", "arguments": {}}]
     assert not grade("search", completed(), journal, tmp_path)["passed"]
+    journal = [*search(), {"name": "vkusvill_discounts_personal", "arguments": {}}]
+    assert not grade("search", completed(), journal, tmp_path)["passed"]
 
 
 def test_failed_result_not_accepted(tmp_path):
@@ -55,10 +57,10 @@ def test_link_requires_exact_payload_and_saved_state(tmp_path):
     events[-1]["text"] = "https://vkusvill.ru/?share_basket=0000000000"
     journal = [
         *search(),
-        {"name": "vkusvill_cart_link_create", "arguments": {"products": [{"xml_id": 901, "q": 2}]}},
+        {"name": "vkusvill_cart_link_create", "arguments": {"products": [{"id": 101, "q": 2}]}},
     ]
     assert grade("link", events, journal, tmp_path)["passed"]
-    journal[-1]["arguments"]["products"][0]["xml_id"] = 101
+    journal[-1]["arguments"]["products"][0]["id"] = 901
     assert not grade("link", events, journal, tmp_path)["passed"]
 
 
@@ -90,7 +92,7 @@ def test_uncertain_contract_rejects_duplicate_mutations(tmp_path):
         )
     mutation = {
         "name": "vkusvill_cart_link_create",
-        "arguments": {"products": [{"xml_id": 901, "q": 2}]},
+        "arguments": {"products": [{"id": 101, "q": 2}]},
     }
     assert grade("uncertain", completed(), [*search(), mutation], tmp_path)["passed"]
     assert not grade("uncertain", completed(), [*search(), mutation, mutation], tmp_path)["passed"]

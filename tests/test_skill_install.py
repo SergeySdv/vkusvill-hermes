@@ -1,11 +1,14 @@
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+from e2e.support import fixture_server
 
 SCRIPTS = Path(__file__).parents[1] / "skills/vkusvill/scripts"
 
@@ -109,6 +112,7 @@ def test_setup_installs_pinned_cli_and_reuses_it(runtime, monkeypatch):
     result = setup.install()
     assert result["ok"]
     assert not result["reused"]
+    assert result["provider_checked"] is False
     assert calls[0] == [sys.executable, "-m", "venv", str(runtime.runtime_python().parent.parent)]
     assert calls[1][-1] == runtime.SOURCE
     assert runtime.SOURCE.endswith(runtime.REVISION)
@@ -117,7 +121,7 @@ def test_setup_installs_pinned_cli_and_reuses_it(runtime, monkeypatch):
     assert len(calls) == 2
 
 
-def test_failed_doctor_does_not_mark_ready(runtime, monkeypatch):
+def test_failed_local_doctor_does_not_mark_ready(runtime, monkeypatch):
     setup = load_script("setup")
     monkeypatch.setattr(setup.shutil, "which", lambda _: "/usr/bin/git")
     monkeypatch.setattr(setup, "run", lambda *args, **kwargs: None)
@@ -128,6 +132,69 @@ def test_failed_doctor_does_not_mark_ready(runtime, monkeypatch):
     monkeypatch.setattr(setup, "doctor", fail)
     assert setup.main() == 1
     assert not runtime.ready()
+
+
+def test_setup_doctor_is_local(runtime, monkeypatch):
+    calls = []
+
+    def run(arguments, **kwargs):
+        calls.append(arguments)
+        return SimpleNamespace(stdout='{"ok": true, "schema_version": 1}')
+
+    monkeypatch.setattr(runtime, "run", run)
+    assert runtime.doctor()["ok"]
+    assert calls == [[str(runtime.runtime_python()), "-m", "vv", "doctor", "--json"]]
+
+
+@pytest.mark.parametrize("status", [502, 503])
+def test_provider_outage_does_not_block_setup_or_launcher(runtime, monkeypatch, tmp_path, status):
+    setup = load_script("setup")
+    installs = []
+
+    def install_runtime(arguments, **kwargs):
+        installs.append(arguments)
+        destination = runtime.runtime_python().parent.parent
+        if not runtime.runtime_python().exists():
+            runtime.runtime_python().parent.mkdir(parents=True, exist_ok=True)
+            runtime.runtime_python().symlink_to(sys.executable)
+            shutil.copy(Path(sys.prefix) / "pyvenv.cfg", destination / "pyvenv.cfg")
+            (destination / "lib").symlink_to(Path(sys.prefix) / "lib", target_is_directory=True)
+        return SimpleNamespace(stdout="")
+
+    monkeypatch.setattr(setup, "run", install_runtime)
+    monkeypatch.setattr(setup.shutil, "which", lambda _: "/usr/bin/git")
+    with fixture_server(tmp_path / "provider") as fixture:
+        monkeypatch.setenv("VV_TEST_MODE", "1")
+        monkeypatch.setenv("VV_MCP_TEST_URL", fixture["env"]["VV_MCP_TEST_URL"])
+        fixture["control"].write_text(json.dumps({"http_status": status}))
+        result = setup.install()
+        assert result["ok"] and not result["reused"]
+        assert result["provider_checked"] is False
+        assert runtime.ready()
+        marker = runtime.runtime_python().parent.parent / "ready.json"
+        before = marker.read_bytes()
+
+        def doctor(*arguments):
+            completed = subprocess.run(
+                [sys.executable, str(SCRIPTS / "vv.py"), "doctor", "--json", *arguments],
+                env=runtime.runtime_environment(),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            return completed.returncode, json.loads(completed.stdout)
+
+        assert doctor()[0] == 0
+        code, failed = doctor("--live")
+        assert code == 1 and failed["error"]["code"] == "PROVIDER_ERROR"
+        assert runtime.ready() and marker.read_bytes() == before
+        assert setup.install()["reused"]
+        assert len(installs) == 2
+        assert doctor()[0] == 0
+        fixture["control"].write_text("{}")
+        code, recovered = doctor("--live")
+        assert code == 0 and recovered["ok"]
+        assert marker.read_bytes() == before
 
 
 def test_launcher_forwards_literal_arguments(runtime, monkeypatch):

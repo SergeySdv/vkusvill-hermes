@@ -23,7 +23,7 @@ def normalize_product(data: dict) -> ProductSnapshot:
         price = data.get("price") or {}
         return ProductSnapshot(
             product_id=data["id"],
-            xml_id=data["xml_id"],
+            xml_id=data.get("xml_id"),
             name=plain(data["name"]),
             description=plain(data.get("description") or ""),
             price=str(price["current"]) if price.get("current") is not None else None,

@@ -42,6 +42,7 @@ def install() -> dict:
         "revision": REVISION,
         "runtime_python": str(runtime_python()),
         "doctor": result,
+        "provider_checked": False,
         "capabilities": "ten_mcp_adapters_oauth_not_configured",
     }
 

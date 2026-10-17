@@ -10,6 +10,7 @@ from typer.exceptions import TyperException
 
 from vv import __version__
 from vv.application import Application
+from vv.auth import AuthStore, login
 from vv.errors import Code, VVError
 from vv.mcp_provider import MCPProvider
 from vv.models import Request
@@ -49,6 +50,8 @@ recipe = typer.Typer()
 shop = typer.Typer()
 orders = typer.Typer()
 favorite = typer.Typer()
+auth = typer.Typer()
+app.add_typer(auth, name="auth")
 app.add_typer(product, name="product")
 app.add_typer(basket, name="basket")
 app.add_typer(discount, name="discount")
@@ -83,23 +86,56 @@ def root(
 def doctor(
     json_output: JsonFlag = False,
     live: Annotated[
-        bool, typer.Option("--live", help="Test the public MCP with one search.")
+        bool, typer.Option("--live", help="Test MCP with one search using configured auth.")
     ] = False,
 ):
     service = application()
     with service.store.transaction():
         pass
+    auth_state = AuthStore().status()["auth"]
     emit(
         {
             "storage": "ok",
             "profile": service.store.profile,
-            "provider": "public_mcp",
+            "provider": "public_mcp" if auth_state == "not_configured" else "authenticated_mcp",
             "network_checked": live,
-            "auth": "not_configured",
+            "auth": auth_state,
             "link_creation_enabled": True,
             "live": service.provider.health() if live else None,
         },
-        warnings=["PUBLIC_CATALOG: address availability and final delivery price are unknown."],
+        warnings=[
+            ("PUBLIC_CATALOG" if auth_state == "not_configured" else "CATALOG_UNVERIFIED")
+            + ": address availability and final delivery price are unknown."
+        ],
+    )
+
+
+@auth.command("status")
+def auth_status(json_output: JsonFlag = False):
+    emit(AuthStore().status())
+
+
+@auth.command("logout")
+def auth_logout(json_output: JsonFlag = False):
+    emit(
+        AuthStore().logout(), warnings=["Local logout only; revoke consent at VkusVill separately."]
+    )
+
+
+@auth.command("login")
+def auth_login(
+    client_file: Annotated[Path, typer.Option("--client-file")],
+    timeout: Annotated[int, typer.Option(min=1, max=600)] = 300,
+    json_output: JsonFlag = False,
+):
+    if not os.isatty(0) or not os.isatty(2):
+        raise VVError(
+            Code.AUTH_REQUIRED, "Run login in a private interactive terminal, not agent chat."
+        )
+    emit(
+        login(
+            client_file, lambda url: typer.echo("Open in your browser: " + url, err=True), timeout
+        )
     )
 
 
@@ -145,6 +181,17 @@ def discount_search(
     emit(
         application().provider.discounts(page, sort, kind, vvonly),
         warnings=["PUBLIC_CATALOG: discount eligibility and address availability are unverified."],
+    )
+
+
+@discount.command("personal")
+def discount_personal(
+    confirm: Annotated[bool, typer.Option("--confirm")] = False,
+    json_output: JsonFlag = False,
+):
+    emit(
+        application().provider.personal_discounts(confirm),
+        warnings=["PERSONAL_DISCOUNTS: this call may update the account's discount selection."],
     )
 
 

@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-REVISION = "02bee28cd9f5a7fc563da9635ee4d5519873c936"
+REVISION = "bbdeb4868528dd60fb05dca91a183bb361d11800"
 SOURCE = f"git+https://github.com/SergeySdv/vkusvill-hermes.git@{REVISION}"
 ENVIRONMENT_ALLOWLIST = (
     "PATH",
@@ -85,7 +85,7 @@ def ready() -> bool:
 
 
 def doctor() -> dict:
-    result = run([str(runtime_python()), "-m", "vv", "doctor", "--live", "--json"], timeout=120)
+    result = run([str(runtime_python()), "-m", "vv", "doctor", "--json"], timeout=120)
     payload = json.loads(result.stdout)
     if payload.get("ok") is not True or payload.get("schema_version") != 1:
         raise ValueError("CLI doctor failed.")
