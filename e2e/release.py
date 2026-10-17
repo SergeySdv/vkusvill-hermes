@@ -11,10 +11,11 @@ import tomllib
 from pathlib import Path
 
 from e2e.support import fixture_server, read_journal
+from vv.models import Basket
 
 ROOT = Path("/opt/candidate")
 HOME = Path("/opt/data/test-home")
-BASELINE = "36542199c79bb107c8b46d8f2d91909655bf8fbd"
+BASELINE = "bd18fcd2c0c24dd40701da7dc0d976145ebdb592"
 REPOSITORY = "https://github.com/SergeySdv/vkusvill-hermes.git"
 
 
@@ -176,7 +177,31 @@ def run_gate(output: Path) -> dict:
         shutil.copytree(baseline / "skills/vkusvill", skill)
         old_revision = revision_of(skill)
         require(old_revision != revision, "Upgrade must cross CLI revisions")
-        require(setup()["ok"] is True, "Previous CLI setup failed")
+        legacy_schemas = command(
+            ["git", "-C", str(baseline), "show", f"{old_revision}:src/vv/schemas.json"]
+        )
+        with fixture_server(output / "baseline-fixture") as fixture:
+            fixture["control"].write_text(
+                json.dumps(
+                    {
+                        "schemas": legacy_schemas,
+                        "legacy_products": True,
+                    }
+                )
+            )
+            baseline_env = {
+                **environment,
+                "VV_TEST_MODE": "1",
+                "VV_MCP_TEST_URL": fixture["env"]["VV_MCP_TEST_URL"],
+            }
+            require(setup(baseline_env)["ok"] is True, "Previous CLI setup failed")
+            require(
+                any(
+                    event["name"] == "vkusvill_products_search"
+                    for event in read_journal(fixture["journal"])
+                ),
+                "Previous installer did not perform its live check against the legacy fixture",
+            )
         old_skill = output / "previous-skill"
         shutil.copytree(skill, old_skill)
         old_launcher = old_skill / "scripts/vv.py"
@@ -267,7 +292,7 @@ def run_gate(output: Path) -> dict:
             for profile in ("default", "other"):
                 require(
                     cli("basket", "show", "upgrade", env={**env, "VV_PROFILE": profile})["data"]
-                    == before,
+                    == Basket.model_validate(before).model_dump(mode="json"),
                     "Upgrade lost or changed a basket",
                 )
             new_commands(fixture)
