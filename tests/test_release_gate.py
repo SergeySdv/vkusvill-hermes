@@ -3,6 +3,7 @@ import copy
 import pytest
 
 from e2e.release import revision_of, run_gate, tree_digest, verify_identity
+from vv.models import Basket, Request
 
 
 def identity():
@@ -16,6 +17,22 @@ def identity():
 def test_installed_identity():
     probe = identity()
     verify_identity(probe, "a" * 40, "0.2.0", probe["files"])
+
+
+def test_upgrade_defaults_preserve_legacy_fields(request_data):
+    legacy = {
+        "name": "upgrade",
+        "revision": 1,
+        "request": Request.model_validate(request_data).model_dump(mode="json"),
+        "state": "draft",
+        "report": None,
+        "check_hash": None,
+        "link": None,
+        "link_attempt": "none",
+    }
+    upgraded = Basket.model_validate(legacy).model_dump(mode="json")
+    assert upgraded.pop("auth_context") == "public"
+    assert upgraded == legacy
 
 
 @pytest.mark.parametrize("change", ["version", "commit", "file", "missing", "extra"])

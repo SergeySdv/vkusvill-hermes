@@ -1,7 +1,8 @@
 # OAuth onboarding (development branch)
 
-Auth is implemented in this checkout, NOT in the published 0.3.0 runtime pin.
-Use `uv run --locked vv` here until a reviewed release updates the installer.
+The 0.4.0 skill pins the OAuth-enabled CLI. Update the full skill bundle and run
+setup; old 0.3.0 installations have no auth. Use the launcher in the Hermes
+environment, or `uv run --locked vv` from this checkout.
 
 ## Verified contract — 2026-10-16
 

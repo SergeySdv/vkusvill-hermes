@@ -135,6 +135,19 @@ def run_gate(output: Path) -> dict:
             "VV_TEST_MODE": "1",
             "VV_MCP_TEST_URL": fixture["env"]["VV_MCP_TEST_URL"],
         }
+        require(
+            cli("auth", "status", env=env)["data"]["auth"] == "not_configured",
+            "Unexpected credentials",
+        )
+        require(
+            cli("discount", "personal", env=env, expected=1)["error"]["code"] == "REVIEW_REQUIRED",
+            "Personal discounts lack confirmation guard",
+        )
+        require(
+            cli("discount", "personal", "--confirm", env=env, expected=1)["error"]["code"]
+            == "AUTH_REQUIRED",
+            "Personal discounts lack auth guard",
+        )
         for arguments in [
             ["product", "barcode", "0012345678901"],
             ["discount", "search"],

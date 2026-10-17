@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Prepare CLI 0.4.0; skill pins immutable commit bbdeb4868528dd60fb05dca91a183bb361d11800.
+- Upgrade gate starts from published 0.3.0 with its actual legacy schemas served
+  by synthetic MCP, so upstream outages/schema changes do not block preparation.
+
 - Reviewed all 11 live MCP input schemas (2026-10-16). Cart payloads now send
   product id, not legacy xml_id; old baskets remain readable but need a fresh check.
 - Added OAuth-only `discount personal --confirm`; treated as a mutation because
@@ -9,7 +13,7 @@
 
 - Development OAuth: explicit terminal PKCE login, private per-profile token storage,
   serialized refresh, status/logout and authenticated MCP. Basket checks bind to
-  login context. Published installer pin unchanged.
+  login context.
 
 - Separate local installer readiness from live MCP availability: setup uses local doctor,
   exposes provider_checked=false, and remains usable during upstream outages.
