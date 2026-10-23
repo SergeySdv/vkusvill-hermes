@@ -1,0 +1,64 @@
+name: Broker isolation smoke
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  pilot-installation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - run: make e2e-build
+      - run: make pilot-bundle PILOT_OUTPUT="$PWD/.e2e-results/pilot"
+      - name: Prepare published 0.4.0 baseline
+        run: |
+          mkdir -p .e2e-results/baseline
+          git archive 0e0d0d09fd9189be84775741e7ca4d11712fb752 skills/vkusvill | tar -xf - -C .e2e-results/baseline
+      - name: Native scanner, old runtime upgrade, repeat and basket preservation
+        run: |
+          docker run --rm --entrypoint /opt/hermes/.venv/bin/python \
+            -v "$PWD/.e2e-results/pilot:/bundle:ro" \
+            -v "$PWD/.e2e-results/baseline:/baseline:ro" \
+            -v "$PWD/e2e/pilot_install.py:/test.py:ro" \
+            -w /opt/hermes -e HERMES_HOME=/opt/data/test-home \
+            vkusvill-hermes-e2e /test.py
+  broker-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: make broker-build broker-smoke
+      - run: docker pull caddy:2.11.7-alpine
+      - run: make broker-containers
+      - name: Validate HTTPS ingress syntax
+        run: >-
+          docker run --rm --network none -e VV_AUTH_DOMAIN=connect.example
+          -v "$PWD/deploy/broker/Caddyfile:/etc/caddy/Caddyfile:ro"
+          caddy:2.11.7-alpine caddy adapt --config /etc/caddy/Caddyfile > /dev/null
+      - name: Validate deployment template without starting services
+        env:
+          VV_PRIVATE_DIR: /tmp/broker-config-validation
+          VV_AUTH_DOMAIN: connect.example
+        run: docker compose -f deploy/broker/compose.yaml config --quiet
+      - name: Validate Jarvis integration artifacts without deployment
+        env:
+          VV_PRIVATE_DIR: /tmp/broker-config-validation
+          VV_AUTH_IMAGE: registry.example/auth@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        run: |
+          docker compose -f deploy/jarvis/compose.yaml config --quiet
+          docker run --rm --network none \
+            -v "$PWD/deploy/jarvis/Caddyfile.site:/etc/caddy/Caddyfile:ro" \
+            caddy:2.11.7-alpine caddy adapt --config /etc/caddy/Caddyfile > /dev/null
+  broker-browser-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: sudo apt-get update && sudo apt-get install -y age
+      - run: uv sync --locked --extra broker --group browser
+      - run: uv run --locked --group browser playwright install --with-deps chromium
+      - run: uv run --locked --group browser pytest tests/test_broker*.py

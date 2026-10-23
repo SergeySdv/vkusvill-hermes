@@ -114,6 +114,12 @@ def create_app(control: Path, journal: Path):
     class MCPRoute:
         async def __call__(self, scope, receive, send):
             configured = settings()
+            expected = configured.get("required_authorization")
+            if expected and dict(scope["headers"]).get(b"authorization") != expected.encode():
+                await JSONResponse({"error": "synthetic unauthorized"}, status_code=401)(
+                    scope, receive, send
+                )
+                return
             if configured.get("http_status"):
                 await JSONResponse(
                     {"error": "SECRET_SENTINEL"}, status_code=configured["http_status"]

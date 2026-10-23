@@ -1,0 +1,8 @@
+{
+  "public_origin": "https://vv-user1.example.com",
+  "owner_id": 123456789,
+  "bot_token": "REPLACE_PRIVATELY_WITH_THIS_OWNERS_BOT_TOKEN",
+  "bridge_key": "REPLACE_WITH_UNIQUE_RANDOM_TOKEN_URLSAFE_32_OR_LONGER",
+  "encryption_key": "REPLACE_WITH_FERNET_GENERATE_KEY",
+  "vault_directory": "/var/lib/vv-auth"
+}

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Prepare 0.5.0.dev0 without changing the published installer pin. Add broker
+  admission/body/host limits, clean callback failures, readiness and reflected-secret guards.
+- Persist uncertain refresh before exchange; never retry it after a crash. Separate
+  public connection epochs invalidate checks after login/logout without claiming OAuth.
+- Add idempotent administrator prepare, age-encrypted SQLite-consistent recovery and
+  offline key-rotation copies. Add existing-ingress Jarvis artifacts, no live apply.
+- Chromium OAuth fixture, two-owner Docker/Caddy isolation/TLS/log tests, process
+  refresh tests and release integrity checks covering browser assets; upgrade baseline 0.4.0.
+
+- Candidate Telegram self-service onboarding in the same package: optional isolated
+  single-owner auth service, signed Mini App identity, browser-bound PKCE callback,
+  encrypted vault and scoped CLI bridge. Separate per-Hermes containers/keys required.
+- Synthetic security/regression tests and deployment template; no real account
+  authorization, public deployment, or new installer pin is claimed for this candidate.
+
 - Prepare CLI 0.4.0; skill pins immutable commit bbdeb4868528dd60fb05dca91a183bb361d11800.
 - Upgrade gate starts from published 0.3.0 with its actual legacy schemas served
   by synthetic MCP, so upstream outages/schema changes do not block preparation.

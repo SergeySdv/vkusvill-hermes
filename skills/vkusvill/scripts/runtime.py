@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -23,6 +24,9 @@ ENVIRONMENT_ALLOWLIST = (
     "VV_RUNTIME_ROOT",
     "VV_STATE_DIR",
     "VV_PROFILE",
+    "VV_BROKER_URL",
+    "VV_BROKER_KEY_FILE",
+    "VV_PILOT_MANIFEST",
     "VV_TEST_MODE",
     "VV_MCP_TEST_URL",
     "HTTP_PROXY",
@@ -50,7 +54,25 @@ def runtime_root() -> Path:
 
 
 def runtime_python() -> Path:
-    return runtime_root() / REVISION / "bin/python"
+    revision, _ = runtime_identity()
+    return runtime_root() / revision / "bin/python"
+
+
+def runtime_identity() -> tuple[str, str]:
+    manifest = os.environ.get("VV_PILOT_MANIFEST")
+    if not manifest:
+        return REVISION, SOURCE
+    value = json.loads(Path(manifest).read_text())
+    if not isinstance(value, dict):
+        raise ValueError("Invalid administrator pilot manifest.")
+    digest = value.get("wheel_sha256", "")
+    if (
+        set(value) != {"wheel_sha256"}
+        or not isinstance(digest, str)
+        or not re.fullmatch(r"[a-f0-9]{64}", digest)
+    ):
+        raise ValueError("Invalid administrator pilot manifest.")
+    return "pilot-" + digest, "wheel:sha256:" + digest
 
 
 def runtime_environment() -> dict[str, str]:
@@ -78,8 +100,9 @@ def run(arguments: list[str], *, timeout: int = 300) -> subprocess.CompletedProc
 
 def ready() -> bool:
     try:
-        marker = json.loads((runtime_root() / REVISION / "ready.json").read_text())
-        return marker == {"revision": REVISION, "source": SOURCE} and runtime_python().is_file()
+        revision, source = runtime_identity()
+        marker = json.loads((runtime_root() / revision / "ready.json").read_text())
+        return marker == {"revision": revision, "source": source} and runtime_python().is_file()
     except (OSError, ValueError):
         return False
 

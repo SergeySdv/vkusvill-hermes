@@ -14,7 +14,7 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.exceptions import McpError
 from mcp.types import CallToolResult
 
-from vv.auth import AuthStore, credentials
+from vv.auth import AuthStore, credentials, is_public_context
 from vv.errors import Code, VVError
 from vv.models import CartPayload, ProductSnapshot, Request
 from vv.normalize import normalize_product
@@ -172,7 +172,10 @@ class MCPProvider:
         try:
             async with asyncio.timeout(90):
                 async with httpx.AsyncClient(
-                    timeout=30, headers=self.headers, follow_redirects=False
+                    timeout=30,
+                    headers=self.headers,
+                    follow_redirects=False,
+                    trust_env=getattr(self, "trust_env", True),
                 ) as client:
                     async with streamable_http_client(self.endpoint, http_client=client) as streams:
                         async with ClientSession(
@@ -231,8 +234,10 @@ class MCPProvider:
         self.search("молоко", 1)
         return {
             "public_mcp": "ok",
-            "auth": "configured" if self.auth_context != "public" else "not_configured",
-            "catalog_scope": "unverified" if self.auth_context != "public" else "public_unverified",
+            "auth": "not_configured" if is_public_context(self.auth_context) else "configured",
+            "catalog_scope": "public_unverified"
+            if is_public_context(self.auth_context)
+            else "unverified",
         }
 
     def read_tool(self, operation: str, arguments: dict, *, paginated: bool = False) -> dict:
@@ -291,7 +296,7 @@ class MCPProvider:
     def personal_discounts(self, confirm: bool = False) -> dict:
         if not confirm:
             raise VVError(Code.REVIEW_REQUIRED, "Personal discounts may change; pass --confirm.")
-        if self.auth_context == "public":
+        if is_public_context(self.auth_context):
             raise VVError(Code.AUTH_REQUIRED, "Personal discounts require explicit OAuth login.")
         return self.read_tool("personal", {})
 

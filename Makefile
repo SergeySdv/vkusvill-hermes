@@ -13,6 +13,28 @@ check: lint test
 build:
 	uv build
 
+.PHONY: pilot-bundle
+pilot-bundle:
+	test -n "$(PILOT_OUTPUT)"
+	uv run --locked python deploy/jarvis/build_bundle.py --output "$(PILOT_OUTPUT)"
+
+.PHONY: test-broker broker-build broker-smoke
+test-broker:
+	uv run --locked pytest tests/test_broker.py tests/test_broker_hardening.py
+.PHONY: broker-browser
+broker-browser:
+	uv run --locked --group browser pytest tests/test_broker_browser.py
+.PHONY: broker-containers
+broker-containers:
+	uv run --locked python -m e2e.broker_containers
+broker-build:
+	docker build -f deploy/broker/Dockerfile -t vv-auth-candidate .
+broker-smoke:
+	docker run --rm --read-only --network none --cap-drop ALL \
+		--security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+		-v "$(CURDIR)/e2e/broker_smoke.py:/test/broker_smoke.py:ro" \
+		--entrypoint /opt/vv/.venv/bin/python vv-auth-candidate /test/broker_smoke.py
+
 .PHONY: test-protocol e2e-build e2e-smoke e2e-install
 test-protocol:
 	uv run --locked pytest tests/test_protocol_e2e.py

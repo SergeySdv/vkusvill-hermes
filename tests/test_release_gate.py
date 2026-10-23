@@ -67,6 +67,16 @@ def test_digest_includes_nested_code_and_schemas_not_cache(tmp_path):
     assert "submodule/code.py" in before
 
 
+@pytest.mark.parametrize("suffix", ["html", "js", "css"])
+def test_digest_covers_browser_security_assets(tmp_path, suffix):
+    asset = tmp_path / ("connect." + suffix)
+    asset.write_text("reviewed")
+    before = tree_digest(tmp_path)
+    assert asset.name in before
+    asset.write_text("unreviewed change")
+    assert tree_digest(tmp_path) != before
+
+
 @pytest.mark.parametrize("pin", ["main", "a" * 39, "z" * 40])
 def test_mutable_or_invalid_pin_rejected(tmp_path, pin):
     (tmp_path / "scripts").mkdir()

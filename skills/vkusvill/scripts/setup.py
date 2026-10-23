@@ -10,6 +10,10 @@ from runtime import REVISION, SOURCE, doctor, ready, run, runtime_python, runtim
 
 
 def install() -> dict:
+    if os.environ.get("VV_PILOT_MANIFEST"):
+        if not ready():
+            raise RuntimeError("Administrator pilot is incomplete; do not replace with release.")
+        return {"ok": True, "reused": True, "mode": "administrator_pilot", "doctor": doctor()}
     if sys.version_info < (3, 11):
         raise RuntimeError("Python 3.11+ is required.")
     reused = ready()
