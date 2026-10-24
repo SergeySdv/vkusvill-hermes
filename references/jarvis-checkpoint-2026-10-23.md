@@ -125,3 +125,82 @@ No client ID/secret, bot token, access/refresh token, vault, seed or receipt wit
 private material belongs in Git. Keep this checkpoint distinct from a stable
 release. No push, merge, new release or working-service modification is requested
 by this checkpoint commit. Continue with UI/menu and empty-account fixes next.
+
+## Follow-up working tree: testing an already connected account
+
+Local changes after the checkpoint (not yet deployed): the ordinary form uses
+client_secret_post without a selector; connected accounts hide the setup form;
+expired form sessions receive an HTML recovery page, while API calls still fail
+closed. Submission progress/errors appear beside the action and secrets are cleared
+after submission. A separate explicit `--send-connect-button` broker action sends
+an owner-only inline Web App message without changing the primary command menu.
+The advanced API still accepts explicitly specified supported client methods.
+
+Do not disconnect, replace credentials, copy the production vault into development,
+or redo OAuth just to test UI. Synthetic tests use temporary encrypted vaults and
+fake credentials, then connect once and reopen/expire the browser session while
+asserting that account context and token-exchange count remain unchanged.
+
+After a reviewed scoped rollout, test the real account non-destructively:
+
+1. Restore the previously saved command menu using the installed maintenance
+   entry point; separately send the inline Web App button with the new broker.
+   This requires an operations integration review, not rerunning the old installer.
+2. Open that button: expect connected status and no credential-entry form.
+   Close/reopen and repeat; no new consent or secret entry should be needed.
+3. Check auth status, then orders and favorite only. Capture sanitized response
+   shapes inside the broker if SCHEMA_CHANGED persists, never token/response bodies.
+4. Compare context/configured state before and after. Browser-session expiration
+   must not disconnect the stored account. Expired access tokens are a separate case.
+5. Restart persistence, failed/cancelled login, populated account, destructive
+   disconnect and rollback tests belong in a synthetic deployment first. A live
+   restart requires its own approved window and backup/rollback review.
+
+Empty-account normalization remains deliberately unchanged until actual response
+shapes are observed. Existing items=[] plus meta={} is valid already. Do not
+translate missing metadata, null payloads or provider errors into invented empty
+results. Production was not modified by these local follow-up changes.
+
+### My VkusVill follow-up (after the UI pilot deployment)
+
+Owner confirmed UI update applied with account preserved, command menu restored
+and separate inline button delivered and pinned. That pinned button remains valid.
+The next local revision changes new button labels to «Мой ВкусВилл», hides setup
+instructions for configured accounts, and provides `auth connect --send-button`.
+The skill instructs bare `/vkusvill` to call that command, using Hermes's normal
+skill slash routing. This is not a deterministic native command handler; confirm
+real Telegram routing after deployment. Reference:
+https://hermes-agent.nousresearch.com/docs/guides/work-with-skills .
+
+The new POST /bridge/connect requires the instance credential and an empty body;
+it accepts no user-supplied recipient, message or URL. Delivery is owner-only,
+duplicate requests within 60 seconds are suppressed, and uncertain delivery is
+not retried automatically. No bot token crosses the bridge. Public Caddy routes
+remain unchanged and must continue excluding all /bridge endpoints.
+
+Tests cover CLI explicit send opt-in, owner restriction, duplicate suppression,
+uncertain delivery, no account-context change and cancelling disconnect. Targeted
+broker/browser/hardening tests, lint and build pass. This next revision is local:
+deploying only its broker image is insufficient. Update the matching CLI runtime,
+pilot manifest and skill through the scanner with rollback, preserving vault and
+cart state. Do not reuse the previous dated image-only activation script.
+Existing pinned messages are not edited or deleted by the new send operation.
+
+### Subsequent deployment confirmed by owner
+
+The coordinated update is now applied according to the owner's server output:
+broker, CLI and skill updated; account preserved; other containers and command
+menu unchanged. Stage: `/srv/vkusvill-auth/jarvis/my-update-1792745062322095311`.
+Its 4100-byte encrypted auth backup was independently restored offline on Mac
+before activation; record equality and configured status passed, no provider
+request made. The owner subsequently reported the Telegram flow appears to work.
+This supersedes the local-only status above; individual live UI cases have not
+all been independently verified. Full local pytest suite and lint passed before
+deployment, alongside operations updater tests (21 tests, 6 subtests).
+
+Next: investigate orders/favorite SCHEMA_CHANGED on the owner's empty account.
+Collect only sanitized keys/types/list lengths at the provider and broker boundary;
+distinguish explicit empty data from missing fields, access errors or malformed
+responses. Add regression fixtures for observed valid empty responses while
+preserving failures for incompatible schemas. Do not reset authorization, create
+orders or fabricate empty results to make the checks pass.

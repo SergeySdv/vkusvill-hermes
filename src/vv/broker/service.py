@@ -230,6 +230,51 @@ class Broker:
                 "onboarding_url": self.settings.public_origin,
             }
 
+    def send_connect_button(self):
+        with self.vault.transaction() as connection:
+            previous = self.vault.get(connection, "connect_button")
+            if previous == "sent":
+                return {"button_sent": False, "recently_sent": True}
+            if previous:
+                raise VVError(Code.OUTCOME_UNKNOWN, "Check the chat; do not resend blindly.")
+            self.vault.put(connection, "connect_button", "attempting", ttl=60)
+        try:
+            with self.http_factory() as client:
+                response = client.post(
+                    "https://api.telegram.org/bot" + self.settings.bot_token + "/sendMessage",
+                    json={
+                        "chat_id": self.settings.owner_id,
+                        "text": (
+                            "Мой ВкусВилл: подключение и управление доступом. "
+                            "Ключи — только в форме."
+                        ),
+                        "reply_markup": {
+                            "inline_keyboard": [
+                                [
+                                    {
+                                        "text": "Мой ВкусВилл",
+                                        "web_app": {"url": self.settings.public_origin},
+                                    }
+                                ]
+                            ]
+                        },
+                    },
+                )
+                response.raise_for_status()
+                value = response.json()
+                if (
+                    value.get("ok") is not True
+                    or type(value.get("result", {}).get("message_id")) is not int
+                ):
+                    raise ValueError("Delivery unconfirmed")
+        except Exception:
+            raise VVError(
+                Code.OUTCOME_UNKNOWN, "Button delivery unconfirmed; check the chat."
+            ) from None
+        with self.vault.transaction() as connection:
+            self.vault.put(connection, "connect_button", "sent", ttl=60)
+        return {"button_sent": True, "recently_sent": False}
+
     def call(self, calls, context, confirmed=False):
         if type(confirmed) is not bool or not isinstance(context, str):
             raise VVError(Code.INVALID_INPUT, "Invalid bridge context or confirmation.")

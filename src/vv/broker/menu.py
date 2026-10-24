@@ -7,6 +7,8 @@ from vv.broker.service import Broker, Settings
 def configure(config, action):
     from vv.broker.recovery import private_write
 
+    if action not in ("status", "enable", "restore", "send"):
+        raise ValueError("Unknown menu action.")
     broker = Broker(Settings.model_validate(private_read(config)))
     settings = broker.settings
     path = settings.vault_directory / "telegram-menu.json"
@@ -24,6 +26,30 @@ def configure(config, action):
             if value.get("ok") is not True:
                 raise ValueError("Menu request rejected.")
             return value["result"]
+
+    if action == "send":
+        result = request(
+            "sendMessage",
+            {
+                "text": (
+                    "Подключение ВкусВилла. "
+                    "Ключи вводите только в защищённой форме, не в чате."
+                ),
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "Мой ВкусВилл",
+                                "web_app": {"url": settings.public_origin},
+                            }
+                        ]
+                    ]
+                },
+            },
+        )
+        if not isinstance(result, dict) or not isinstance(result.get("message_id"), int):
+            raise ValueError("Connection button delivery unconfirmed; inspect chat before retry.")
+        return {"ok": True, "action": "send", "menu_changed": False}
 
     with broker.vault.transaction():
         current = request("getChatMenuButton", {})

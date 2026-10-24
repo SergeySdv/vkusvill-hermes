@@ -122,7 +122,8 @@ def login(page, origin):
     page.wait_for_url(origin + "/connect")
     page.get_by_label("Client ID из письма").fill(CLIENT["client_id"])
     page.get_by_label("Client secret (если выдан)").fill(CLIENT["client_secret"])
-    page.get_by_label("Метод из настроек клиента").select_option("client_secret_post")
+    assert page.locator("select").count() == 0
+    assert page.locator('[name="token_endpoint_auth_method"]').input_value() == "client_secret_post"
     page.get_by_label("Scope — выданные права").fill(CLIENT["scope"])
     page.get_by_role("button", name="Подключить через ВкусВилл").click()
     page.wait_for_url("https://oauth.vkusvill.ru/oauth2/auth?*")
@@ -134,7 +135,9 @@ def test_browser_consent_callback_no_secrets_in_storage(browser):
     login(page, origin)
     page.get_by_role("link", name="Allow synthetic consent").click()
     page.wait_for_url(origin + "/connect")
-    playwright.expect(page.get_by_role("status")).to_contain_text("Подключение сохранено")
+    playwright.expect(page.locator("#message")).to_contain_text("Подключение сохранено")
+    playwright.expect(page.locator("#connect")).to_be_hidden()
+    playwright.expect(page.locator("#setup-help")).to_be_hidden()
     assert page.get_by_label("Client secret (если выдан)").input_value() == ""
     assert (
         page.evaluate("Object.keys(localStorage).length + Object.keys(sessionStorage).length") == 0
@@ -148,7 +151,7 @@ def test_browser_consent_callback_no_secrets_in_storage(browser):
     assert not any("api.telegram.org" in url for url in visited)
     page.on("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Отключить", exact=True).click()
-    playwright.expect(page.get_by_role("status")).to_contain_text("не подключён")
+    playwright.expect(page.locator("#message")).to_contain_text("не подключён")
 
 
 def test_browser_missing_cookie_cleans_callback_without_exchange(browser):
@@ -161,3 +164,49 @@ def test_browser_missing_cookie_cleans_callback_without_exchange(browser):
     playwright.expect(page.get_by_role("heading")).to_have_text("Вход не завершён")
     assert "BROWSER-CANARY-CODE" not in page.content()
     assert all(request.url.path != "/oauth2/token" for request in requests)
+
+
+def test_browser_expired_submit_visible_error_and_secret_cleared(browser):
+    context, _, requests, origin = browser
+    page = context.new_page()
+    page.goto(origin + "/")
+    page.wait_for_url(origin + "/connect")
+    page.get_by_label("Client ID из письма").fill(CLIENT["client_id"])
+    page.get_by_label("Client secret (если выдан)").fill(CLIENT["client_secret"])
+    page.get_by_label("Scope — выданные права").fill(CLIENT["scope"])
+    context.clear_cookies()
+    page.get_by_role("button", name="Подключить через ВкусВилл").click()
+    playwright.expect(page.locator("#action-message")).to_contain_text("Сессия формы истекла")
+    playwright.expect(page.locator("#action-message")).to_be_in_viewport()
+    assert page.get_by_label("Client secret (если выдан)").input_value() == ""
+    assert not requests
+    page.reload()
+    playwright.expect(page.get_by_role("heading")).to_have_text("Сессия формы истекла")
+
+
+def test_connected_reopen_does_not_repeat_token_exchange(browser):
+    context, _, requests, origin = browser
+    page = context.new_page()
+    login(page, origin)
+    page.get_by_role("link", name="Allow synthetic consent").click()
+    page.wait_for_url(origin + "/connect")
+    context.clear_cookies()
+    page.goto(origin + "/")
+    page.wait_for_url(origin + "/connect")
+    playwright.expect(page.locator("#message")).to_contain_text("Подключение сохранено")
+    playwright.expect(page.locator("#connect")).to_be_hidden()
+    assert sum(request.url.path == "/oauth2/token" for request in requests) == 1
+
+
+def test_disconnect_cancel_preserves_connection(browser):
+    context, _, requests, origin = browser
+    page = context.new_page()
+    login(page, origin)
+    page.get_by_role("link", name="Allow synthetic consent").click()
+    page.wait_for_url(origin + "/connect")
+    playwright.expect(page.locator("#message")).to_contain_text("Подключение сохранено")
+    page.on("dialog", lambda dialog: dialog.dismiss())
+    page.get_by_role("button", name="Отключить", exact=True).click()
+    page.reload()
+    playwright.expect(page.locator("#message")).to_contain_text("Подключение сохранено")
+    assert sum(request.url.path == "/oauth2/token" for request in requests) == 1

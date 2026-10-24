@@ -157,7 +157,15 @@ def create_app(broker: Broker):
     async def page(request):
         name = "bootstrap.html" if request.url.path == "/" else "connect.html"
         if name == "connect.html":
-            await run_in_threadpool(broker.browser_status, request.cookies.get(COOKIE))
+            try:
+                await run_in_threadpool(broker.browser_status, request.cookies.get(COOKIE))
+            except VVError as error:
+                if error.code != Code.AUTH_REQUIRED:
+                    raise
+                return HTMLResponse(
+                    files("vv.broker").joinpath("static", "expired.html").read_text(),
+                    status_code=401,
+                )
         return HTMLResponse(files("vv.broker").joinpath("static", name).read_text())
 
     async def asset(request):
@@ -219,6 +227,12 @@ def create_app(broker: Broker):
             )
         return JSONResponse(envelope(result))
 
+    async def connect_button(request):
+        broker.bridge_auth(request.headers.get("authorization", ""))
+        if await json_body(request) != {}:
+            raise VVError(Code.INVALID_INPUT, "Button recipient and URL cannot be overridden.")
+        return JSONResponse(envelope(await run_in_threadpool(broker.send_connect_button)))
+
     async def health(request):
         return JSONResponse({"ok": True})
 
@@ -237,6 +251,7 @@ def create_app(broker: Broker):
             Route("/oauth/callback", callback),
             Route("/oauth/problem", problem),
             Route("/bridge/status", bridge),
+            Route("/bridge/connect", connect_button, methods=["POST"]),
             Route("/bridge/call", bridge, methods=["POST"]),
             Route("/health", health),
             Route("/ready", ready),
@@ -255,6 +270,11 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument(
+        "--send-connect-button",
+        action="store_true",
+        help="Send an owner-only connection button without replacing the command menu",
+    )
+    parser.add_argument(
         "--set-menu",
         action="store_true",
         help="Set the Mini App menu only for the configured owner's private chat",
@@ -266,14 +286,14 @@ def main():
         broker = Broker(Settings.model_validate(private_read(args.config)))
     except Exception:
         parser.exit(1, "Invalid private broker configuration; details suppressed.\n")
-    if args.set_menu:
+    if args.set_menu or args.send_connect_button:
         try:
             from vv.broker.menu import configure
 
-            configure(args.config, "enable")
+            configure(args.config, "send" if args.send_connect_button else "enable")
         except Exception:
             parser.exit(1, "Could not configure owner menu; details suppressed.\n")
-        print("Owner Mini App menu configured; no polling or webhook changes.")
+        print("Owner Mini App entry configured; no polling or webhook changes.")
         return
     import uvicorn
 

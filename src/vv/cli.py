@@ -124,17 +124,20 @@ def auth_status(json_output: JsonFlag = False):
 
 
 @auth.command("connect")
-def auth_connect(json_output: JsonFlag = False):
+def auth_connect(json_output: JsonFlag = False, send_button: bool = False):
     if not broker_enabled():
         raise VVError(
             Code.NOT_IMPLEMENTED, "Administrator must provision the isolated broker first."
         )
-    status = BrokerProvider().status()
+    broker = BrokerProvider()
+    status = broker.status()
+    delivery = broker.request("/bridge/connect", {}, mutation=True) if send_button else {}
     emit(
         {
             "auth": status["auth"],
             "onboarding_url": status["onboarding_url"],
-            "instruction": "Use the VkusVill Mini App menu in your bot's private chat. "
+            **delivery,
+            "instruction": "Open the My VkusVill button in the bot's private message. "
             "Never send client secrets or callback codes to the agent.",
         }
     )

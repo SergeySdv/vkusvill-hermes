@@ -17,7 +17,14 @@ out of Hermes and do not apply server changes automatically.
 
 ## User flow
 
-1. Open the **ВкусВилл** Mini App menu in the bot's private chat.
+1. Open the **Мой ВкусВилл** inline Mini App button in the bot's private chat.
+   Keep the existing pinned button; it continues to open the same application.
+   In the updated pilot, `/vkusvill` without a task instructs the skill to run
+   `vv auth connect --send-button --json` and send another owner-only button.
+   This uses Hermes's skill slash-command routing, not a new Telegram webhook.
+   It is model-mediated and needs real Telegram acceptance after deployment.
+   Both the broker and the CLI/skill must be updated; updating just the image
+   does not add the flag to the CLI installed in Hermes.
 2. The service verifies both the initData HMAC and Telegram's own Ed25519 signature,
    owner ID and 120-second freshness. HMAC alone is insufficient when the agent may
    know its bot token. The production Telegram public key is pinned in code; no
@@ -66,9 +73,14 @@ This does not start another Telegram poller or change the existing webhook.
   The example Caddy container binds ports 80/443; on a host with existing ingress,
   integrate the equivalent routes into that ingress instead of starting competing
   listeners. Three owners need three distinct hostnames/upstreams and vaults.
-- Configure only this owner's menu, explicitly:
-  `docker compose -p vv-user1 -f deploy/broker/compose.yaml run --rm vv-auth --config /run/secrets/broker.json --set-menu`.
-  This replaces the existing menu for that private chat only. Coordinate any
+- Send an entry point only to the configured owner, explicitly.
+  Prefer an inline message without replacing the command menu:
+  `docker compose -p vv-user1 -f deploy/broker/compose.yaml run --rm vv-auth --config /run/secrets/broker.json --send-connect-button`.
+  This sends a message each time explicitly requested. If delivery times out,
+  inspect the chat before retrying to avoid duplicate messages. For an existing
+  pilot, separately restore the saved menu using its reviewed maintenance tool.
+  Legacy `--set-menu` remains opt-in for deployments that intentionally use it.
+  Only the legacy flag replaces the menu for that private chat. Coordinate any
   existing Mini App menu before applying it; it is not an automatic startup effect.
 - Attach only the matching Hermes container to the project's `agent_bridge`
   network (`vv-user1_agent_bridge`). Keep the service alias `vv-auth`. Do not attach

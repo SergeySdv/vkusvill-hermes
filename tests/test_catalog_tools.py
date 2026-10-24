@@ -87,6 +87,25 @@ def test_paginated_shape_changes_fail_closed(monkeypatch, method, data):
     assert caught.value.code == Code.SCHEMA_CHANGED
 
 
+def test_empty_orders_with_metadata_are_valid(monkeypatch):
+    data = {"items": [], "meta": {"page": 1, "total": 0}}
+    monkeypatch.setattr(MCPProvider, "batch", lambda *args: [data])
+    assert MCPProvider().orders() == data
+
+
+@pytest.mark.parametrize("data", [None, [], "", {"items": []}])
+def test_unverified_empty_shapes_are_not_silently_normalized(monkeypatch, data):
+    def batch(*args):
+        return [
+            provider_data(CallToolResult(content=[], structuredContent={"ok": True, "data": data}))
+        ]
+
+    monkeypatch.setattr(MCPProvider, "batch", batch)
+    with pytest.raises(VVError) as caught:
+        MCPProvider().orders()
+    assert caught.value.code == Code.SCHEMA_CHANGED
+
+
 @pytest.mark.parametrize(
     "error,expected",
     [
