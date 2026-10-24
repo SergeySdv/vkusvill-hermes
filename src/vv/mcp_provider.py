@@ -82,7 +82,7 @@ def unpack_result(result: CallToolResult) -> dict:
     return data
 
 
-def provider_data(result: CallToolResult) -> dict:
+def provider_data(result: CallToolResult, *, tool: str | None = None) -> dict:
     envelope = unpack_result(result)
     if envelope.get("ok") is False:
         error = envelope.get("error")
@@ -96,6 +96,8 @@ def provider_data(result: CallToolResult) -> dict:
         if code == "INVALID_INPUT":
             raise VVError(Code.INVALID_INPUT, "Provider rejected the supplied arguments.")
         raise VVError(Code.PROVIDER_ERROR, "Provider reported an unsuccessful result.")
+    if tool == TOOLS["favorite"] and envelope.get("ok") is True and envelope.get("data") == []:
+        return {"product": None}
     if envelope.get("ok") is not True or not isinstance(envelope.get("data"), dict):
         raise VVError(Code.SCHEMA_CHANGED, "Provider envelope changed.")
     return envelope["data"]
@@ -206,7 +208,7 @@ class MCPProvider:
                             for name, arguments in calls:
                                 sent_mutation = name in (TOOLS["link"], TOOLS["personal"])
                                 result = await session.call_tool(name, arguments)
-                                results.append(provider_data(result))
+                                results.append(provider_data(result, tool=name))
                             return results
         except Exception as error:
             nested = leaves(error)
@@ -248,6 +250,12 @@ class MCPProvider:
         data = self.batch([(name, arguments)])[0]
         if not isinstance(data, dict):
             raise VVError(Code.SCHEMA_CHANGED, "Expected a provider data object.")
+        if operation == "orders" and "orders" in data:
+            if "items" in data:
+                raise VVError(Code.SCHEMA_CHANGED, "Ambiguous provider order lists.")
+            data = {key: value for key, value in data.items() if key != "orders"} | {
+                "items": data["orders"]
+            }
         if paginated and (
             not isinstance(data.get("items"), list)
             or not all(isinstance(item, dict) for item in data["items"])

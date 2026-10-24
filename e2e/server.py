@@ -74,7 +74,11 @@ def create_app(control: Path, journal: Path):
             }
             if configured.get("legacy_products"):
                 product["xml_id"] = 901
-            if name in ("vkusvill_products_search", "vkusvill_products_discount"):
+            if configured.get("empty_account") and name == "vkusvill_orders_history":
+                data = {"orders": [], "meta": {"page": arguments.get("page", 1)}}
+            elif configured.get("empty_account") and name == "vkusvill_product_lp":
+                data = []
+            elif name in ("vkusvill_products_search", "vkusvill_products_discount"):
                 data = {"items": [product], "meta": {"total": 1}}
             elif name == "vkusvill_product_barcode":
                 data = product

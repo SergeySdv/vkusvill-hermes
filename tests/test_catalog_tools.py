@@ -93,6 +93,60 @@ def test_empty_orders_with_metadata_are_valid(monkeypatch):
     assert MCPProvider().orders() == data
 
 
+@pytest.mark.parametrize("orders", [[], [{"id": "synthetic-order"}]])
+def test_provider_orders_field_is_normalized_without_losing_metadata(monkeypatch, orders):
+    data = {"orders": orders, "meta": {"page": 1, "has_more": False}}
+    monkeypatch.setattr(MCPProvider, "batch", lambda *args: [data])
+    assert MCPProvider().orders() == {"items": orders, "meta": data["meta"]}
+    assert "items" not in data
+
+
+@pytest.mark.parametrize("data", [
+    {"orders": [], "items": [], "meta": {}},
+    {"orders": None, "meta": {}}, {"orders": [1], "meta": {}},
+    {"orders": []}, {"orders": [], "meta": []},
+])
+def test_invalid_order_shapes_still_fail(monkeypatch, data):
+    monkeypatch.setattr(MCPProvider, "batch", lambda *args: [data])
+    with pytest.raises(VVError) as caught:
+        MCPProvider().orders()
+    assert caught.value.code == Code.SCHEMA_CHANGED
+
+
+def test_confirmed_empty_favorite_is_explicit():
+    result = CallToolResult(content=[], structuredContent={"ok": True, "data": []})
+    assert provider_data(result, tool=TOOLS["favorite"]) == {"product": None}
+
+
+@pytest.mark.parametrize(
+    "tool", [None, *[name for name in TOOLS.values() if name != TOOLS["favorite"]]]
+)
+def test_empty_array_is_not_accepted_for_other_tools(tool):
+    result = CallToolResult(content=[], structuredContent={"ok": True, "data": []})
+    with pytest.raises(VVError) as caught:
+        provider_data(result, tool=tool)
+    assert caught.value.code == Code.SCHEMA_CHANGED
+
+
+@pytest.mark.parametrize("data", [None, "", [{"id": "unreviewed"}], [1]])
+def test_unconfirmed_favorite_shapes_still_fail(data):
+    result = CallToolResult(content=[], structuredContent={"ok": True, "data": data})
+    with pytest.raises(VVError) as caught:
+        provider_data(result, tool=TOOLS["favorite"])
+    assert caught.value.code == Code.SCHEMA_CHANGED
+
+
+@pytest.mark.parametrize("code,expected", [("AUTH_REQUIRED", Code.AUTH_REQUIRED),
+                                          ("unexpected", Code.PROVIDER_ERROR)])
+def test_empty_favorite_does_not_hide_provider_errors(code, expected):
+    result = CallToolResult(content=[], structuredContent={
+        "ok": False, "data": [], "error": {"code": code},
+    })
+    with pytest.raises(VVError) as caught:
+        provider_data(result, tool=TOOLS["favorite"])
+    assert caught.value.code == expected
+
+
 @pytest.mark.parametrize("data", [None, [], "", {"items": []}])
 def test_unverified_empty_shapes_are_not_silently_normalized(monkeypatch, data):
     def batch(*args):

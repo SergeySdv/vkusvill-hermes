@@ -13,6 +13,19 @@ def protocol(tmp_path):
         yield fixture
 
 
+def test_observed_empty_account_shapes_over_real_mcp(protocol):
+    protocol["control"].write_text(json.dumps({"empty_account": True}))
+    orders = invoke(protocol["env"], "orders", "list")
+    favorite = invoke(protocol["env"], "favorite", "show")
+    assert orders["ok"] is True
+    assert orders["data"] == {"items": [], "meta": {"page": 1}}
+    assert favorite["ok"] is True
+    assert favorite["data"] == {"product": None}
+    assert [event["name"] for event in read_journal(protocol["journal"])] == [
+        "vkusvill_orders_history", "vkusvill_product_lp",
+    ]
+
+
 def prepare(protocol, tmp_path, **constraints):
     request = tmp_path / "request.json"
     request.write_text(
