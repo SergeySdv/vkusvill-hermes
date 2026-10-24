@@ -129,6 +129,24 @@ def login(page, origin):
     page.wait_for_url("https://oauth.vkusvill.ru/oauth2/auth?*")
 
 
+def test_browser_reconnect_without_client_fields(browser):
+    context, visited, requests, origin = browser
+    page = context.new_page()
+    login(page, origin)
+    page.get_by_role("link", name="Allow synthetic consent").click()
+    page.wait_for_url(origin + "/connect")
+    page.get_by_role("button", name="Войти снова без ввода ключей").click()
+    page.wait_for_url("https://oauth.vkusvill.ru/oauth2/auth?*")
+    params = parse_qs(urlsplit(page.url).query)
+    assert params["scope"][0].split().count("offline_access") == 1
+    assert params["prompt"] == ["consent"]
+    page.get_by_role("link", name="Allow synthetic consent").click()
+    page.wait_for_url(origin + "/connect")
+    playwright.expect(page.locator("#connect")).to_be_hidden()
+    assert "SYNTHETIC-SECRET" not in page.content()
+    assert sum(request.url.path == "/oauth2/token" for request in requests) == 2
+
+
 def test_browser_consent_callback_no_secrets_in_storage(browser):
     context, visited, requests, origin = browser
     page = context.new_page()

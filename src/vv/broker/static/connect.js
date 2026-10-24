@@ -25,27 +25,27 @@ async function update() {
     const status = await request("/api/status");
     document.getElementById("callback").textContent = status.redirect_uri;
     message.textContent = status.auth === "configured" ?
-      "Подключение сохранено. Вернитесь в бот и проверьте доступ к заказам." :
-      status.auth === "reconnect_required" ? "Нужен повторный вход во ВкусВилл." : "ВкусВилл не подключён.";
-    document.getElementById("connect").hidden = status.auth === "configured";
-    document.getElementById("setup-help").hidden = status.auth === "configured";
+      (status.refresh_available ? "Подключение сохранено. Автоматическое продление доступно." :
+        "Подключение сохранено, но автоматическое продление не выдано. Можно войти снова с запросом offline_access.") :
+      status.auth === "reconnect_required" ? "Срок доступа истёк или требуется повторный вход. Ключи сохранены." : "ВкусВилл не подключён.";
+    document.getElementById("connect").hidden = status.auth !== "not_configured";
+    document.getElementById("setup-help").hidden = status.auth !== "not_configured";
+    document.getElementById("reconnect").hidden = status.auth === "not_configured";
     document.getElementById("disconnect").hidden = status.auth !== "configured" && status.auth !== "reconnect_required";
   } catch {
     message.textContent = "Откройте приложение заново из личного чата бота.";
   }
 }
-document.getElementById("connect").addEventListener("submit", async event => {
-  event.preventDefault();
+async function startConnection(button, data) {
   if (submitting) return;
   submitting = true;
-  const button = event.target.querySelector("button");
   button.disabled = true;
   showAction("Начинаем подключение… Не закрывайте окно.");
-  const data = Object.fromEntries(new FormData(event.target));
+  data.offline_access = document.getElementById("offline-access").checked;
   if (!data.client_secret) delete data.client_secret;
   try {
     const result = await request("/api/connect", data);
-    event.target.reset();
+    document.getElementById("connect").reset();
     const target = new URL(result.authorize_url);
     if (target.origin !== "https://oauth.vkusvill.ru" || target.pathname !== "/oauth2/auth") {
       throw new Error("Неожиданный адрес авторизации");
@@ -60,6 +60,13 @@ document.getElementById("connect").addEventListener("submit", async event => {
     document.querySelector('[name="client_secret"]').value = "";
     delete data.client_secret;
   }
+}
+document.getElementById("connect").addEventListener("submit", event => {
+  event.preventDefault();
+  startConnection(event.target.querySelector("button"), Object.fromEntries(new FormData(event.target)));
+});
+document.getElementById("reconnect").addEventListener("click", event => {
+  startConnection(event.target, {reuse_saved: true});
 });
 document.getElementById("disconnect").addEventListener("click", async () => {
   if (!window.confirm("Отключить ВкусВилл для этого бота?")) return;

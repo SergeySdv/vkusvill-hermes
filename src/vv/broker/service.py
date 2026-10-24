@@ -111,7 +111,14 @@ class Broker:
         return {
             "auth": (
                 "reconnect_required"
-                if account and account.get("reconnect_required")
+                if account
+                and (
+                    account.get("reconnect_required")
+                    or (
+                        account["expires_at"] <= time.time() + 30
+                        and not account["token"].get("refresh_token")
+                    )
+                )
                 else "configured"
                 if account
                 else "not_configured"
@@ -122,14 +129,32 @@ class Broker:
         }
 
     def begin(self, session, values):
-        config = WebClient.model_validate({**values, "redirect_uri": self.settings.callback})
+        values = dict(values)
+        offline = values.pop("offline_access", False)
+        reuse = values.pop("reuse_saved", False)
+        if type(offline) is not bool or type(reuse) is not bool or (reuse and values):
+            raise VVError(Code.INVALID_INPUT, "Invalid reconnect parameters.")
         with self.vault.transaction() as connection:
             self.browser(connection, session)
+            if reuse:
+                account = self.vault.get(connection, "account")
+                if not account:
+                    raise VVError(
+                        Code.AUTH_REQUIRED, "No saved client; configure connection first."
+                    )
+                values = account["config"]
+            config = WebClient.model_validate({**values, "redirect_uri": self.settings.callback})
             previous = self.vault.get(connection, "attempt")
             if previous and previous["created"] > time.time() - 10:
                 raise VVError(Code.REVIEW_REQUIRED, "Wait before starting another connection.")
             with self.http_factory() as client:
                 metadata = discover(client)
+            if offline:
+                if "offline_access" not in (
+                    metadata.scopes_supported or []
+                ) or "refresh_token" not in (metadata.grant_types_supported or []):
+                    raise VVError(Code.SCHEMA_CHANGED, "Offline access is not advertised.")
+                config.scope = " ".join(dict.fromkeys([*config.scope.split(), "offline_access"]))
             if config.token_endpoint_auth_method not in (
                 metadata.token_endpoint_auth_methods_supported or []
             ):
@@ -161,6 +186,11 @@ class Broker:
                         "code_challenge": pkce.code_challenge,
                         "code_challenge_method": "S256",
                         "resource": RESOURCE,
+                        **(
+                            {"prompt": "consent"}
+                            if "offline_access" in config.scope.split()
+                            else {}
+                        ),
                     }
                 )
             )

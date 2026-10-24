@@ -83,6 +83,7 @@ def setup(tmp_path, monkeypatch):
                     "token_endpoint": ISSUER + "oauth2/token",
                     "response_types_supported": ["code"],
                     "grant_types_supported": ["authorization_code", "refresh_token"],
+                    "scopes_supported": ["offline_access"],
                     "code_challenge_methods_supported": ["S256"],
                     "token_endpoint_auth_methods_supported": ["client_secret_post"],
                 },
@@ -142,6 +143,96 @@ def connect(broker, client):
     )
     assert response.status_code == 303, response.text
     return params
+
+
+def test_reconnect_saved_client_requests_offline_and_preserves_account_on_denial(setup):
+    broker, client, _, _ = setup
+    connect(broker, client)
+    with broker.vault.transaction() as connection:
+        before = broker.vault.get(connection, "account")
+    response = client.post("/api/connect", json={"reuse_saved": True, "offline_access": True})
+    assert response.status_code == 200
+    params = parse_qs(urlsplit(response.json()["data"]["authorize_url"]).query)
+    assert params["scope"] == [CLIENT["scope"] + " offline_access"]
+    assert params["prompt"] == ["consent"]
+    assert params["client_id"] == [CLIENT["client_id"]]
+    assert "SYNTHETIC-SECRET" not in response.text
+    client.get("/oauth/callback", params={"state": params["state"][0], "error": "access_denied"})
+    with broker.vault.transaction() as connection:
+        assert broker.vault.get(connection, "account") == before
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"reuse_saved": True, "client_id": "other"},
+        {"reuse_saved": "true"},
+        {"offline_access": "true"},
+    ],
+)
+def test_reconnect_rejects_overrides(setup, body):
+    broker, client, _, _ = setup
+    authenticate(broker, client)
+    assert client.post("/api/connect", json=body).json()["error"]["code"] == "INVALID_INPUT"
+
+
+def test_reconnect_requires_browser_and_saved_account(setup):
+    broker, client, requests, _ = setup
+    assert client.post("/api/connect", json={"reuse_saved": True}).status_code != 200
+    authenticate(broker, client)
+    assert (
+        client.post("/api/connect", json={"reuse_saved": True}).json()["error"]["code"]
+        == "AUTH_REQUIRED"
+    )
+    assert not requests
+
+
+def test_offline_request_requires_advertised_support(setup, monkeypatch):
+    from types import SimpleNamespace
+
+    broker, client, _, _ = setup
+    connect(broker, client)
+    monkeypatch.setattr(
+        "vv.broker.service.discover",
+        lambda client: SimpleNamespace(
+            scopes_supported=[],
+            grant_types_supported=["refresh_token"],
+        ),
+    )
+    response = client.post("/api/connect", json={"reuse_saved": True, "offline_access": True})
+    assert response.json()["error"]["code"] == "SCHEMA_CHANGED"
+    assert broker.bridge_status()["auth"] == "configured"
+
+
+def test_reconnect_without_refresh_reports_missing_refresh(setup):
+    broker, client, _, _ = setup
+    connect(broker, client)
+    response = client.post("/api/connect", json={"reuse_saved": True, "offline_access": True})
+    params = parse_qs(urlsplit(response.json()["data"]["authorize_url"]).query)
+    broker.http_factory = lambda: httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={
+                    "access_token": "SYNTHETIC-NEW",
+                    "token_type": "Bearer",
+                    "expires_in": 3600,
+                },
+            )
+        )
+    )
+    response = client.get(
+        "/oauth/callback",
+        params={"state": params["state"][0], "code": "CODE"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert broker.bridge_status()["refresh_available"] is False
+    with broker.vault.transaction() as connection:
+        assert (
+            broker.vault.get(connection, "account")["config"]["client_secret"]
+            == CLIENT["client_secret"]
+        )
 
 
 def rejected_callback(response):
@@ -391,6 +482,26 @@ def test_bridge_schema_and_mutation_guards(setup, calls, confirmed, code):
     response = bridge(client, broker, calls, confirmed=confirmed)
     assert response.json()["error"]["code"] == code
     assert not dispatched
+
+
+@pytest.mark.parametrize("remaining", [-60, 20, 600])
+@pytest.mark.parametrize("refresh_available", [False, True])
+def test_status_accounts_for_expiry_without_refresh(setup, remaining, refresh_available):
+    broker, client, requests, calls = setup
+    connect(broker, client)
+    with broker.vault.transaction() as connection:
+        account = broker.vault.get(connection, "account")
+        account["expires_at"] = time.time() + remaining
+        if not refresh_available:
+            account["token"].pop("refresh_token", None)
+        broker.vault.put(connection, "account", account, ttl=None)
+    request_count = len(requests)
+    expected = "reconnect_required" if remaining <= 30 and not refresh_available else "configured"
+    assert broker.bridge_status()["auth"] == expected
+    assert len(requests) == request_count
+    assert not calls
+    with broker.vault.transaction() as connection:
+        assert broker.vault.get(connection, "account") == account
 
 
 def test_refresh_serialized_and_preserves_context(setup):
