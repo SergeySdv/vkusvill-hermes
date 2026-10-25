@@ -135,6 +135,8 @@ def main():
                     "run",
                     "--rm",
                     "--no-deps",
+                    "--entrypoint",
+                    "caddy",
                     "caddy",
                     "validate",
                     "--config",
