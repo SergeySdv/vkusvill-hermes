@@ -4,7 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 
-REVISION = "bbdeb4868528dd60fb05dca91a183bb361d11800"
+REVISION = "d6c72c092ae85ce9ab775209a4da162e96c207fe"
 SOURCE = f"git+https://github.com/SergeySdv/vkusvill-hermes.git@{REVISION}"
 ENVIRONMENT_ALLOWLIST = (
     "PATH",
