@@ -26,6 +26,19 @@ def test_observed_empty_account_shapes_over_real_mcp(protocol):
     ]
 
 
+def test_selected_favorite_array_over_real_mcp(protocol):
+    protocol["control"].write_text(json.dumps({"selected_favorite": True}))
+    response = invoke(protocol["env"], "favorite", "show")
+    assert response["ok"] is True
+    assert response["data"] == {"products": [{
+        "id": "synthetic-123", "name": "SYNTHETIC TEST fruit",
+        "price": {"synthetic_current": "134"}, "unit": "kg",
+    }]}
+    assert [event["name"] for event in read_journal(protocol["journal"])] == [
+        "vkusvill_product_lp",
+    ]
+
+
 def prepare(protocol, tmp_path, **constraints):
     request = tmp_path / "request.json"
     request.write_text(

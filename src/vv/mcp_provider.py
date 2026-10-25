@@ -96,8 +96,21 @@ def provider_data(result: CallToolResult, *, tool: str | None = None) -> dict:
         if code == "INVALID_INPUT":
             raise VVError(Code.INVALID_INPUT, "Provider rejected the supplied arguments.")
         raise VVError(Code.PROVIDER_ERROR, "Provider reported an unsuccessful result.")
-    if tool == TOOLS["favorite"] and envelope.get("ok") is True and envelope.get("data") == []:
-        return {"product": None}
+    data = envelope.get("data")
+    if tool == TOOLS["favorite"] and envelope.get("ok") is True and isinstance(data, list):
+        if not data:
+            return {"product": None}
+        if not all(
+            isinstance(product, dict)
+            and all(
+                isinstance(product.get(key), str) and product[key]
+                for key in ("id", "name", "unit")
+            )
+            and isinstance(product.get("price"), dict)
+            for product in data
+        ):
+            raise VVError(Code.SCHEMA_CHANGED, "Favorite product list shape changed.")
+        return {"products": data}
     if envelope.get("ok") is not True or not isinstance(envelope.get("data"), dict):
         raise VVError(Code.SCHEMA_CHANGED, "Provider envelope changed.")
     return envelope["data"]

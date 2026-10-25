@@ -118,6 +118,27 @@ def test_confirmed_empty_favorite_is_explicit():
     assert provider_data(result, tool=TOOLS["favorite"]) == {"product": None}
 
 
+@pytest.mark.parametrize("count", [1, 2])
+def test_favorite_array_preserves_every_product_and_field(count):
+    data = [{"id": str(index), "name": "Synthetic", "unit": "kg",
+             "price": {"synthetic_current": "134"}, "extra": {"synthetic": True}}
+            for index in range(count)]
+    result = CallToolResult(content=[], structuredContent={"ok": True, "data": data})
+    assert provider_data(result, tool=TOOLS["favorite"]) == {"products": data}
+
+
+@pytest.mark.parametrize("field,value", [
+    ("id", 123), ("id", ""), ("name", None), ("unit", None), ("price", []),
+])
+def test_invalid_favorite_product_fields_fail(field, value):
+    product = {"id": "123", "name": "Synthetic", "unit": "kg", "price": {}}
+    product[field] = value
+    result = CallToolResult(content=[], structuredContent={"ok": True, "data": [product]})
+    with pytest.raises(VVError) as caught:
+        provider_data(result, tool=TOOLS["favorite"])
+    assert caught.value.code == Code.SCHEMA_CHANGED
+
+
 @pytest.mark.parametrize(
     "tool", [None, *[name for name in TOOLS.values() if name != TOOLS["favorite"]]]
 )
