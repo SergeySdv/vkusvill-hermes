@@ -75,8 +75,14 @@ def create_app(control: Path, journal: Path):
             if configured.get("legacy_products"):
                 product["xml_id"] = 901
             if configured.get("selected_favorite") and name == "vkusvill_product_lp":
-                data = [{"id": "synthetic-123", "name": "SYNTHETIC TEST fruit",
-                         "price": {"synthetic_current": "134"}, "unit": "kg"}]
+                data = [
+                    {
+                        "id": "synthetic-123",
+                        "name": "SYNTHETIC TEST fruit",
+                        "price": {"synthetic_current": "134"},
+                        "unit": "kg",
+                    }
+                ]
             elif configured.get("empty_account") and name == "vkusvill_orders_history":
                 data = {"orders": [], "meta": {"page": arguments.get("page", 1)}}
             elif configured.get("empty_account") and name == "vkusvill_product_lp":

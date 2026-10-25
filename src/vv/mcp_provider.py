@@ -103,8 +103,7 @@ def provider_data(result: CallToolResult, *, tool: str | None = None) -> dict:
         if not all(
             isinstance(product, dict)
             and all(
-                isinstance(product.get(key), str) and product[key]
-                for key in ("id", "name", "unit")
+                isinstance(product.get(key), str) and product[key] for key in ("id", "name", "unit")
             )
             and isinstance(product.get("price"), dict)
             for product in data

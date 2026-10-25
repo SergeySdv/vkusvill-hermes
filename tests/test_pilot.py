@@ -16,8 +16,11 @@ ROOT = Path(__file__).parents[1]
 @pytest.mark.parametrize("folder", ["jarvis", "broker"])
 def test_tmpfs_flow_sequence_keeps_options_in_one_string(folder):
     config = (ROOT / "deploy" / folder / "compose.yaml").read_text()
-    entry = next(line.strip().split(":", 1)[1] for line in config.splitlines()
-                 if line.strip().startswith("tmpfs:"))
+    entry = next(
+        line.strip().split(":", 1)[1]
+        for line in config.splitlines()
+        if line.strip().startswith("tmpfs:")
+    )
     assert json.loads(entry) == ["/tmp:rw,noexec,nosuid,size=16m"]
 
 
@@ -29,11 +32,14 @@ def pilot_module():
 
 
 def test_pilot_identity_does_not_change_release_pin(runtime, monkeypatch, tmp_path):
+    release_revision = runtime.REVISION
+    release_source = runtime.SOURCE
     manifest = tmp_path / "pilot.json"
     manifest.write_text(json.dumps({"wheel_sha256": "a" * 64}))
     monkeypatch.setenv("VV_PILOT_MANIFEST", str(manifest))
     assert runtime.runtime_python().parent.parent.name == "pilot-" + "a" * 64
-    assert runtime.REVISION == "bbdeb4868528dd60fb05dca91a183bb361d11800"
+    assert runtime.REVISION == release_revision
+    assert runtime.SOURCE == release_source
     assert not runtime.ready()
     folder = runtime.runtime_python().parent.parent
     folder.mkdir(parents=True)

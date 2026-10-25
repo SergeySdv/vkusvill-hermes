@@ -13,6 +13,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: make e2e-build
       - run: make pilot-bundle PILOT_OUTPUT="$PWD/.e2e-results/pilot"
+      - name: Allow container user to read the synthetic pilot bundle
+        run: chmod -R a+rX .e2e-results/pilot
       - name: Prepare published 0.4.0 baseline
         run: |
           mkdir -p .e2e-results/baseline
@@ -30,6 +32,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
       - run: make broker-build broker-smoke
       - run: docker pull caddy:2.11.7-alpine
       - run: make broker-containers
