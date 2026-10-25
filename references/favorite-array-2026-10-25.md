@@ -16,3 +16,15 @@ Tests cover single/multiple products, malformed fields, existing empty and
 provider-error handling, plus a real local SDK/CLI protocol test. Production
 acceptance requires the owner to request favorite show after coordinated rollout.
 Authorization is neither reset nor re-entered for this update.
+
+## Owner-reported live acceptance
+
+At 2026-10-25T02:27:11Z the owner supplied Jarvis's successful fresh favorite
+query: the selected bananas were returned without SCHEMA_CHANGED. The owner
+had already confirmed successful empty orders/favorite queries after the prior
+schema update. These are owner-provided results, not independently captured raw
+provider responses. No account mutations were requested by the acceptance tests.
+
+Actual automatic token refresh remains unverified. Jarvis also reported a
+self-improvement edit to its installed skill references/cli.md; that remote diff
+has not been reviewed or incorporated into this repository.
