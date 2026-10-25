@@ -77,6 +77,7 @@ def main():
             "image": os.environ.get("VV_CADDY_TEST_IMAGE", "caddy:2.11.7-alpine"),
             "read_only": True,
             "cap_drop": ["ALL"],
+            "cap_add": ["NET_BIND_SERVICE"],
             "security_opt": ["no-new-privileges:true"],
             "volumes": [f"{caddyfile}:/etc/caddy/Caddyfile:ro"],
             "tmpfs": ["/data:mode=1777", "/config:mode=1777", "/tmp:mode=1777"],
