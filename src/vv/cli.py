@@ -11,6 +11,7 @@ from typer.exceptions import TyperException
 from vv import __version__
 from vv.application import Application
 from vv.auth import AuthStore, login
+from vv.bridge import BrokerProvider, broker_enabled
 from vv.errors import Code, VVError
 from vv.mcp_provider import MCPProvider
 from vv.models import Request
@@ -63,7 +64,8 @@ app.add_typer(favorite, name="favorite")
 
 def application() -> Application:
     directory = Path(os.environ.get("VV_STATE_DIR", str(Path.home() / ".local/state/vv")))
-    return Application(Store(directory, os.environ.get("VV_PROFILE", "default")), MCPProvider())
+    provider = BrokerProvider() if broker_enabled() else MCPProvider()
+    return Application(Store(directory, os.environ.get("VV_PROFILE", "default")), provider)
 
 
 @app.callback(invoke_without_command=True)
@@ -92,12 +94,18 @@ def doctor(
     service = application()
     with service.store.transaction():
         pass
-    auth_state = AuthStore().status()["auth"]
+    auth_state = (
+        (service.provider.status()["auth"] if live else "broker_not_checked")
+        if broker_enabled()
+        else AuthStore().status()["auth"]
+    )
     emit(
         {
             "storage": "ok",
             "profile": service.store.profile,
-            "provider": "public_mcp" if auth_state == "not_configured" else "authenticated_mcp",
+            "provider": "isolated_broker"
+            if broker_enabled()
+            else ("public_mcp" if auth_state == "not_configured" else "authenticated_mcp"),
             "network_checked": live,
             "auth": auth_state,
             "link_creation_enabled": True,
@@ -112,11 +120,33 @@ def doctor(
 
 @auth.command("status")
 def auth_status(json_output: JsonFlag = False):
-    emit(AuthStore().status())
+    emit(BrokerProvider().status() if broker_enabled() else AuthStore().status())
+
+
+@auth.command("connect")
+def auth_connect(json_output: JsonFlag = False, send_button: bool = False):
+    if not broker_enabled():
+        raise VVError(
+            Code.NOT_IMPLEMENTED, "Administrator must provision the isolated broker first."
+        )
+    broker = BrokerProvider()
+    status = broker.status()
+    delivery = broker.request("/bridge/connect", {}, mutation=True) if send_button else {}
+    emit(
+        {
+            "auth": status["auth"],
+            "onboarding_url": status["onboarding_url"],
+            **delivery,
+            "instruction": "Open the My VkusVill button in the bot's private message. "
+            "Never send client secrets or callback codes to the agent.",
+        }
+    )
 
 
 @auth.command("logout")
 def auth_logout(json_output: JsonFlag = False):
+    if broker_enabled():
+        raise VVError(Code.REVIEW_REQUIRED, "Disconnect in the authenticated Mini App.")
     emit(
         AuthStore().logout(), warnings=["Local logout only; revoke consent at VkusVill separately."]
     )
@@ -128,6 +158,8 @@ def auth_login(
     timeout: Annotated[int, typer.Option(min=1, max=600)] = 300,
     json_output: JsonFlag = False,
 ):
+    if broker_enabled():
+        raise VVError(Code.REVIEW_REQUIRED, "Connect in the Mini App; do not provide secrets here.")
     if not os.isatty(0) or not os.isatty(2):
         raise VVError(
             Code.AUTH_REQUIRED, "Run login in a private interactive terminal, not agent chat."

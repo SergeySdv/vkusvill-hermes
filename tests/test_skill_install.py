@@ -72,6 +72,8 @@ def test_unlisted_environment_not_forwarded(runtime, monkeypatch, name):
         "HERMES_HOME",
         "VV_STATE_DIR",
         "VV_PROFILE",
+        "VV_BROKER_URL",
+        "VV_BROKER_KEY_FILE",
         "HTTPS_PROXY",
         "NO_PROXY",
         "SSL_CERT_FILE",

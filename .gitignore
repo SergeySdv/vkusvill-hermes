@@ -20,3 +20,7 @@ vv-oauth-client.json
 **/auth/*/session.json
 .DS_Store
 .e2e-results/
+.broker-private/
+deploy/broker/private/
+*.age
+*.key

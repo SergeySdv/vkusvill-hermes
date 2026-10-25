@@ -1,6 +1,7 @@
 import hmac
 import time
 
+from vv.auth import is_public_context
 from vv.constraints import comparable_report, live_report, local_report, normalize_request
 from vv.errors import Code, VVError
 from vv.models import Basket, Request, State, Status
@@ -38,7 +39,7 @@ class Application:
                 raise VVError(Code.REVIEW_REQUIRED, "Basket changed during refresh.")
             basket.report = report
             basket.auth_context = getattr(self.provider, "auth_context", "public")
-            if refresh and basket.auth_context != "public":
+            if refresh and not is_public_context(basket.auth_context):
                 report.scope = "authenticated_live"
             basket.state = State.CHECKED
             basket.link = None
@@ -81,7 +82,7 @@ class Application:
         if basket.state == State.LINK_CREATED:
             return basket
         fresh = live_report(basket.request, self.provider.refresh(basket.request))
-        if basket.auth_context != "public":
+        if not is_public_context(basket.auth_context):
             fresh.scope = "authenticated_live"
         if comparable_report(fresh) != comparable_report(basket.report):
             raise VVError(

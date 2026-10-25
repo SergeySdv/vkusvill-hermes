@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Мой ВкусВилл</title><link rel="stylesheet" href="/assets/style.css"></head>
+<body><main><h1>Мой ВкусВилл</h1><p id="message" role="status">Проверяем подключение…</p>
+<p>Данные передаются напрямую сервису подключения, не агенту и не в сообщения Telegram.</p>
+<section id="setup-help" hidden>
+<p>Зарегистрируйте персонального клиента на сайте ВкусВилл. Callback для регистрации:</p>
+<code id="callback"></code>
+</section>
+<form id="connect" autocomplete="off" hidden>
+<label>Client ID из письма<input name="client_id" required maxlength="512"></label>
+<label>Client secret (если выдан)<input name="client_secret" type="password" maxlength="4096" autocomplete="new-password"></label>
+<input type="hidden" name="token_endpoint_auth_method" value="client_secret_post">
+<label>Scope — выданные права<input name="scope" maxlength="2048" required></label>
+<p>Пароль ВкусВилла и SMS-код здесь не вводите. Далее откроется сайт ВкусВилла.</p>
+<button type="submit">Подключить через ВкусВилл</button></form>
+<label><input id="offline-access" type="checkbox" checked>Запросить автоматическое продление доступа (offline_access). ВкусВилл может потребовать дополнительное согласие.</label>
+<button id="reconnect" type="button" hidden>Войти снова без ввода ключей</button>
+<p id="action-message" role="status" aria-live="polite"></p>
+<button id="disconnect" type="button" hidden>Отключить</button>
+<p>Отключение удаляет локальное подключение. Отзыв разрешения на стороне ВкусВилла выполняется отдельно.</p>
+<p>Если браузер не завершил вход, откройте приложение заново. Не пересылайте адрес возврата в чат.</p>
+</main><script src="/assets/connect.js"></script></body></html>

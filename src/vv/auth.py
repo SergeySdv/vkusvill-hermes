@@ -24,6 +24,10 @@ RESOURCE = "https://mcp.vkusvill.ru/mcp"
 ISSUER = "https://oauth.vkusvill.ru/"
 
 
+def is_public_context(value):
+    return value == "public" or value.startswith("public:")
+
+
 class ClientConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     client_id: str = Field(min_length=1)

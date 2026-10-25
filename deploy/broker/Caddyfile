@@ -1,0 +1,48 @@
+{
+    admin off
+    servers {
+        strict_sni_host on
+    }
+    log default {
+        exclude http
+    }
+}
+
+{$VV_AUTH_DOMAIN} {
+    request_body {
+        max_size 32KB
+    }
+    log {
+        output discard
+    }
+    @pages {
+        method GET HEAD
+        path / /connect /oauth/callback /oauth/problem /api/status /assets/bootstrap.js /assets/connect.js /assets/style.css
+    }
+    @actions {
+        method POST
+        path /api/session /api/connect /api/disconnect
+    }
+    handle @pages {
+        reverse_proxy vv-auth:8080 {
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 90s
+            }
+        }
+    }
+    handle @actions {
+        reverse_proxy vv-auth:8080 {
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 90s
+            }
+        }
+    }
+    handle {
+        respond "Not found" 404
+    }
+    handle_errors {
+        respond "Service unavailable" 503
+    }
+}

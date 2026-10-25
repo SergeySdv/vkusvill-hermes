@@ -26,8 +26,13 @@ def prepare_home(home: Path):
     runtime = skill / "scripts/runtime.py"
     sources = sorted(
         [
-            *(ROOT / "src/vv").glob("*.py"),
-            ROOT / "src/vv/schemas.json",
+            *(
+                path
+                for path in (ROOT / "src/vv").rglob("*")
+                if path.is_file()
+                and "__pycache__" not in path.parts
+                and path.suffix in (".py", ".json", ".html", ".js", ".css")
+            ),
             ROOT / "uv.lock",
             *(
                 path

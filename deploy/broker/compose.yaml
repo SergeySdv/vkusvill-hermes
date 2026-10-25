@@ -1,0 +1,45 @@
+services:
+  vv-auth:
+    build:
+      context: ../..
+      dockerfile: deploy/broker/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    volumes:
+      - type: bind
+        source: ${VV_PRIVATE_DIR:?Set an administrator-owned directory}/broker.json
+        target: /run/secrets/broker.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${VV_PRIVATE_DIR:?Set an administrator-owned directory}/vault
+        target: /var/lib/vv-auth
+        bind:
+          create_host_path: false
+    networks: [agent_bridge, ingress, egress]
+  https:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    ports: ["443:443", "80:80"]
+    environment:
+      VV_AUTH_DOMAIN: ${VV_AUTH_DOMAIN:?Set the instance's HTTPS hostname}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls_data:/data
+      - tls_config:/config
+    networks: [ingress, egress]
+networks:
+  agent_bridge:
+    internal: true
+  ingress:
+    internal: true
+  egress: {}
+volumes:
+  tls_data: {}
+  tls_config: {}

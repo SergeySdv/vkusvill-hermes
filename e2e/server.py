@@ -74,7 +74,20 @@ def create_app(control: Path, journal: Path):
             }
             if configured.get("legacy_products"):
                 product["xml_id"] = 901
-            if name in ("vkusvill_products_search", "vkusvill_products_discount"):
+            if configured.get("selected_favorite") and name == "vkusvill_product_lp":
+                data = [
+                    {
+                        "id": "synthetic-123",
+                        "name": "SYNTHETIC TEST fruit",
+                        "price": {"synthetic_current": "134"},
+                        "unit": "kg",
+                    }
+                ]
+            elif configured.get("empty_account") and name == "vkusvill_orders_history":
+                data = {"orders": [], "meta": {"page": arguments.get("page", 1)}}
+            elif configured.get("empty_account") and name == "vkusvill_product_lp":
+                data = []
+            elif name in ("vkusvill_products_search", "vkusvill_products_discount"):
                 data = {"items": [product], "meta": {"total": 1}}
             elif name == "vkusvill_product_barcode":
                 data = product
@@ -114,6 +127,12 @@ def create_app(control: Path, journal: Path):
     class MCPRoute:
         async def __call__(self, scope, receive, send):
             configured = settings()
+            expected = configured.get("required_authorization")
+            if expected and dict(scope["headers"]).get(b"authorization") != expected.encode():
+                await JSONResponse({"error": "synthetic unauthorized"}, status_code=401)(
+                    scope, receive, send
+                )
+                return
             if configured.get("http_status"):
                 await JSONResponse(
                     {"error": "SECRET_SENTINEL"}, status_code=configured["http_status"]

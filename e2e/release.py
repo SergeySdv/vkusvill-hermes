@@ -15,7 +15,7 @@ from vv.models import Basket
 
 ROOT = Path("/opt/candidate")
 HOME = Path("/opt/data/test-home")
-BASELINE = "bd18fcd2c0c24dd40701da7dc0d976145ebdb592"
+BASELINE = "0e0d0d09fd9189be84775741e7ca4d11712fb752"
 REPOSITORY = "https://github.com/SergeySdv/vkusvill-hermes.git"
 
 
@@ -36,7 +36,9 @@ def tree_digest(directory: Path) -> dict[str, str]:
     return {
         str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(directory.rglob("*"))
-        if path.is_file() and "__pycache__" not in path.parts and path.suffix in (".py", ".json")
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.suffix in (".py", ".json", ".html", ".js", ".css")
     }
 
 
@@ -123,7 +125,7 @@ def run_gate(output: Path) -> dict:
                 "'files':{str(path.relative_to(root)):"
                 "hashlib.sha256(path.read_bytes()).hexdigest() "
                 "for path in root.rglob('*') if path.is_file() and '__pycache__' not in path.parts "
-                "and path.suffix in ('.py','.json')}}))",
+                "and path.suffix in ('.py','.json','.html','.js','.css')}}))",
             ]
         )
         verify_identity(probe, revision, version, tree_digest(ROOT / "src/vv"))
@@ -209,11 +211,11 @@ def run_gate(output: Path) -> dict:
             }
             require(setup(baseline_env)["ok"] is True, "Previous CLI setup failed")
             require(
-                any(
-                    event["name"] == "vkusvill_products_search"
-                    for event in read_journal(fixture["journal"])
-                ),
-                "Previous installer did not perform its live check against the legacy fixture",
+                not read_journal(fixture["journal"]),
+                "Published 0.4.0 installer unexpectedly contacted the provider",
+            )
+            require(
+                cli("--json", "--version")["data"]["version"] == "0.4.0", "Expected 0.4.0 baseline"
             )
         old_skill = output / "previous-skill"
         shutil.copytree(skill, old_skill)

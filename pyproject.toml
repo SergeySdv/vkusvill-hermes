@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vkusvill-hermes"
-version = "0.4.0"
+version = "0.5.0.dev0"
 description = "Deterministic local basket CLI and Hermes skill for VkusVill MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,9 +13,15 @@ dependencies = ["typer>=0.27.2,<0.28", "pydantic>=2.13,<3", "mcp>=1.30,<2", "htt
 
 [project.scripts]
 vv = "vv.cli:main"
+vv-auth-web = "vv.broker.server:main"
+vv-auth-admin = "vv.broker.recovery:main"
+
+[project.optional-dependencies]
+broker = ["starlette>=1,<2", "uvicorn>=0.30,<1", "cryptography>=46,<51"]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "ruff==0.15.6", "pre-commit>=4,<5", "build>=1.2,<2"]
+dev = ["pytest>=8,<10", "ruff==0.15.6", "pre-commit>=4,<5", "build>=1.2,<2", "cryptography>=46,<51"]
+browser = ["playwright==1.56.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vv"]

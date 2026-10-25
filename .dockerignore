@@ -10,5 +10,10 @@
 !tests/**
 !e2e/
 !e2e/**
+!deploy/
+!deploy/broker/
+!deploy/broker/Caddyfile
+!deploy/jarvis/
+!deploy/jarvis/Caddyfile.site
 **/__pycache__/
 **/*.pyc

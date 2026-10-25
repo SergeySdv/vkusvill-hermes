@@ -1,5 +1,14 @@
 # Security
 
+The unreleased optional `[broker]` service supports Telegram self-service for one
+owner per isolated Hermes instance. OAuth credentials stay in a separate encrypted
+vault, outside agent mounts. The agent holds only its own instance API capability;
+it can use authorized MCP operations, not export the OAuth credentials. Never give
+Hermes host root, Docker control, service-code write access or broker secret mounts.
+Browser callbacks require both one-shot state and the original authenticated session.
+See references/telegram-onboarding.md for deployment assumptions, ingress/logging
+requirements, limitations and the pending real-user acceptance checklist.
+
 The CLI calls the official public VkusVill MCP for search, details, analogs and
 cart-share links. Development OAuth uses explicit browser consent; no orders or payments.
 Personal discounts may change the account selection: OAuth and explicit --confirm
