@@ -10,9 +10,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def command(arguments, *, check=True):
-    return subprocess.run(
-        arguments, capture_output=True, text=True, check=check, timeout=120
-    ).stdout
+    try:
+        return subprocess.run(
+            arguments, capture_output=True, text=True, check=check, timeout=120
+        ).stdout
+    except subprocess.CalledProcessError as error:
+        if "compose" in arguments:
+            operation = arguments[6]
+            if operation in ("config", "run", "up", "exec", "restart", "stop", "logs", "down"):
+                print(json.dumps({"failed_operation": operation, "exit_code": error.returncode}))
+            if operation == "run" and "validate" in arguments:
+                print(error.stderr)
+        raise
 
 
 def main():
